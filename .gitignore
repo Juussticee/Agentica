@@ -1,0 +1,181 @@
+# Python virtual environments
+
+/env/
+/venv/
+/.venv/
+**/env/
+**/venv/
+**/.venv/
+
+# Python cache and compiled files
+
+**pycache**/
+*.py[cod]
+*.pyo
+
+# Environment variables and secrets
+
+.env
+.env.*
+!.env.example
+!.env.template
+!.env.sample
+
+# Python application data
+
+storage/
+reports/
+.freebuff/
+*.db*
+.extract-snapshots/
+
+# Logs
+
+logs/
+*.log*
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Temporary files
+
+.codex_tmp/
+.temp/
+.tmp/
+temp/
+**/temp/
+apps/server/temp/
+*.bak
+.AppPrev.tsx
+
+# Dependencies
+
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Local configuration files
+
+*.config.cjs
+*.config.js
+*.config.ts
+*.local.cjs
+*.local.js
+*.local.ts
+config.local.cjs
+config.local.js
+config.local.ts
+*.local
+
+# Secrets and credentials
+
+*.secret.cjs
+*.secret.js
+*.secret.ts
+credentials.cjs
+credentials.js
+credentials.json
+.npmrc
+**/.npmrc
+*.pem
+.dev.vars*
+
+# Testing and coverage
+
+coverage/
+.nyc_output/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Build outputs
+
+out/
+build/
+dist/
+dist-ssr/
+.cache/
+.next/
+.vinxi/
+.output/
+.react-router/
+.tanstack/
+.nitro/
+.million/
+.turbo/
+.expo/
+.astro/
+.next/
+.open-next
+
+# Deployment
+
+.vercel/
+.netlify/
+.wrangler/
+.alchemy/
+
+# ML checkpoints and generated media
+
+wav2vec2_checkpoints/
+**/wav2vec2_checkpoints/
+*.wav
+*.mp4
+*.webm
+
+# TypeScript
+
+*.tsbuildinfo
+next-env.d.ts
+
+# Runtime data
+
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Diagnostic reports
+
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Editors and IDEs
+
+.vscode/*
+!.vscode/launch.json
+!.vscode/*.code-snippets
+!.vscode/extensions.json
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Operating system
+
+.DS_Store
+Thumbs.db
+
+# Other generated artifacts
+
+[.*]*.s[a-v][a-z]
+[.*]*.sw[a-p]
+[.*]s[a-rt-v][a-z]
+[.*]ss[a-gi-z]
+[._]sw[a-p]
