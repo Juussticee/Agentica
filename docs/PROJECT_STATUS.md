@@ -15,7 +15,9 @@ Control Center GUI-1: COMPLETE (events + runner + 18 tests)
 Control Center GUI-2: RESTORED (SQLite store + FastAPI v1 + 14 tests)
 Control Center GUI-3: RESTORED (React shell, dashboard, history, detail)
 Control Center GUI-16: PARTIAL (AI settings + 7-phase readiness + 21 tests)
-GUI-4..19: NOT STARTED
+Operations dashboard (GUI-5/GUI-7 slice): RESTORED (real service health,
+  event-derived agent activity, execution sequence; 14 ops tests)
+GUI-4, GUI-6, GUI-8..19: NOT STARTED
 ```
 
 ## Completed
@@ -139,8 +141,10 @@ START → supervisor → books_agent ──────────────�
    `BOOKS_MIN_SCORE` floor, not on similarity alone. Embeddings are NOT on
    Gemini (known gap, intentionally not worked around).
 6. **Real ERP integration does not exist** — only the vendor-neutral
-   boundary plus the deterministic mock (Phase 3); see below.
-7. **QA node and LLM-based routing do not exist** — see below.
+   boundary plus the deterministic mock (Phase 3); see Completed above.
+7. **LLM-based routing is opt-in and off by default** (`ROUTING_MODE=keyword`;
+   see the Phase 6 note below). Planners/dispatchers and per-execution
+   approval modes remain unimplemented (MASTER_PLAN Phases 7/8, GUI-10).
 
 ## Not Yet Implemented
 
@@ -168,15 +172,36 @@ byte-identical to keyword routing.
 
 * **Restored and verified**: execution lifecycle, append-only event log,
   SQLite persistence (`storage/control_center.sqlite3`), FastAPI v1
-  endpoints (health/executions/events + AI settings/test), React frontend
-  (dashboard/new/executions/detail/settings), honest failure reporting.
+  endpoints (health/executions/events + AI settings/test + the three
+  operations endpoints below), React frontend (overview/new/executions/
+  detail/settings + Services/Agents/Tasks & Sequence pages with grouped
+  sidebar and mobile-responsive layout), honest failure reporting.
+* **Operations dashboard restored (partial GUI-5/GUI-7)**: real bounded
+  service-health probes (`app/services_health.py` — agentica_api, SQLite
+  storage, Ollama `/api/tags`, SearXNG, ERP adapter in-process; states
+  running/stopped/unreachable/degraded/misconfigured/not_configured/unknown
+  with latency, failure reason, and a next diagnostic action),
+  event-derived agent activity (`app/execution/events.py` now records
+  `routing.decided` and `qa.completed` with `agent_id`; the Agents page
+  shows live activity while an execution runs and stays visible on failed
+  runs), and a truthful execution sequence endpoint
+  (`/api/v1/executions/{id}/sequence`: created → supervisor → routed →
+  agents → qa → completed, built from the recorded events — this build has
+  no queue/planner dependency graph; that arrives with MASTER_PLAN
+  Phase 7/8).
 * **Live checks performed**: executions answered via the real graph (ERP
   mock route, research route via SearXNG + Ollama `qwen3:0.6b`); AI
   connection test passed all seven phases against the live Ollama endpoint;
-  browser UI rendered persisted runs.
-* **Not implemented yet**: GUI-4..GUI-19 per [CONTROL_CENTER_PLAN.md]
-  (CONTROL_CENTER_PLAN.md) — the preview is an initial GUI-1/2/3 slice plus
-  a partial GUI-16 only.
+  browser UI rendered persisted runs; Services page matched the real
+  machine state (backend/SQLite/Ollama running, SearXNG shown per its
+  actual availability); Agents page shows the honest idle/empty state
+  between runs; Tasks & Sequence rendered the full recorded stage list for
+  real execution IDs including a fresh run with the routed + qa stages;
+  desktop and 375 px mobile viewports verified with no horizontal overflow.
+* **Not implemented yet**: planner/dispatcher dependency-graph views (GUI-5
+  core, blocked on MASTER_PLAN Phase 7/8), and the rest of GUI-4..GUI-19
+  per [CONTROL_CENTER_PLAN.md](CONTROL_CENTER_PLAN.md) — the operations
+  dashboard is a GUI-5/GUI-7 slice, not the full workspaces.
 
 ### Legacy live-test scripts
 

@@ -85,8 +85,26 @@ class TestQaNodeUnit(unittest.TestCase):
 class TestQaNodeInGraph(unittest.TestCase):
     """End-to-end: every route ends through the qa gate (faked agents)."""
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         import app.graph as graph_module
+        cls.graph_module = graph_module
+        # Save the real agents once; restore in tearDownClass so later suites
+        # (test_phase3_erp with the REAL erp agent) never see these fakes.
+        cls._snapshot = {
+            name: getattr(graph_module, name)
+            for name in ("books_agent", "research_agent", "feasibility_agent", "erp_agent")
+        }
+        cls._install_fakes()
+
+    @classmethod
+    def tearDownClass(cls):
+        for name, fn in cls._snapshot.items():
+            setattr(cls.graph_module, name, fn)
+
+    @classmethod
+    def _install_fakes(cls):
+        graph_module = cls.graph_module
 
         def fake_books(state):
             return {
@@ -116,11 +134,10 @@ class TestQaNodeInGraph(unittest.TestCase):
                 "agent_answers": {**(state.get("agent_answers") or {}), "erp": "ERP"},
             }
 
-        graph_module.books_agent = fake_books
-        graph_module.research_agent = fake_research
-        graph_module.feasibility_agent = fake_feasibility
-        graph_module.erp_agent = fake_erp
-        self.graph_module = graph_module
+        cls.graph_module.books_agent = fake_books
+        cls.graph_module.research_agent = fake_research
+        cls.graph_module.feasibility_agent = fake_feasibility
+        cls.graph_module.erp_agent = fake_erp
 
     def test_books_route_has_qa_flags_key(self):
         g = self.graph_module.build_graph()

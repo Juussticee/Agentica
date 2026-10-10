@@ -305,6 +305,203 @@ def ai_settings_session(req: AiSettingsUpdate) -> Dict[str, Any]:
     return ai_settings.masked_settings()
 
 
+# --- Operations dashboard endpoints (GUI-7 extension) -----------------------
+
+
+@app.get("/api/v1/services")
+def services_health() -> Dict[str, Any]:
+    """Real bounded probes for each configured dependency.
+
+    Availability only; the functional generation test stays behind
+    POST /api/v1/ai/test (never run on a polling interval).
+    """
+    try:
+        from app import services_health
+        return services_health.services_snapshot()
+    except Exception as exc:
+        return {
+            "checked_at": None,
+            "services": [],
+            "error": {
+                "human_message": "Service checks could not run.",
+                "why": type(exc).__name__,
+                "recovery": "Retry; if it persists, report a bug.",
+            },
+        }
+
+
+@app.get("/api/v1/agents/activity")
+def agents_activity() -> Dict[str, Any]:
+    """Agent/node activity derived ONLY from real execution events.
+
+    A node is 'working' when its started event is the latest lifecycle
+    record without a completion; never inferred from graph topology.
+    """
+    inventory: List[Dict[str, str]] = [
+        {"node": "supervisor", "role": "Decides which capability handles the request"},
+        {"node": "research", "role": "Web research (SearXNG + Crawl4AI + model synthesis)"},
+        {"node": "books", "role": "Answers from the internal book library (RAG)"},
+        {"node": "erp", "role": "Business-data lookups via the adapter"},
+        {"node": "feasibility", "role": "Synthesizes the feasibility study (web + books)"},
+        {"node": "qa", "role": "Validates the completed workflow output"},
+    ]
+    execs = get_store().list_executions()
+    agents: Dict[str, Dict[str, Any]] = {a["node"]: dict(a) for a in inventory}
+    for node in agents:
+        agents[node].update({"status": "idle", "execution_id": None,
+                             "task": None, "last_event_at": None,
+                             "last_event": None, "last_error": None})
+
+    for exec_row in execs:
+        eid = exec_row["id"]
+        events = get_store().get_events(eid)
+        if exec_row["status"] in ("running", "queued"):
+            # active run: show last lifecycle record per agent (working/failed)
+            last_by_agent: Dict[str, Dict[str, Any]] = {}
+            for ev in events:
+                a = ev.get("agent_id")
+                if not a:
+                    continue
+                prev = last_by_agent.get(a)
+                if prev is None or ev["event_id"] > prev["event_id"]:
+                    last_by_agent[a] = ev
+            for a, ev in last_by_agent.items():
+                if a not in agents:
+                    continue
+                agents[a]["status"] = (
+                    "failed" if ev["type"] == "agent.failed"
+                    else "completed" if ev["type"] == "agent.completed"
+                    else "working" if ev["type"] == "agent.started" else "idle"
+                )
+                agents[a]["execution_id"] = eid
+                agents[a]["task"] = exec_row["question"]
+                agents[a]["last_event_at"] = ev["timestamp"]
+                agents[a]["last_event"] = ev["message"]
+                if ev["type"] == "agent.failed" and ev.get("payload"):
+                    agents[a]["last_error"] = ev["payload"].get("category")
+        elif exec_row["status"] == "failed":
+            # failed run: failed agents stay visible, but NOT as "working"
+            for ev in events:
+                a = ev.get("agent_id")
+                if a == ev.get("agent_id") and ev["type"] == "agent.failed" \
+                        and a in agents:
+                    agents[a]["status"] = "failed"
+                    agents[a]["execution_id"] = eid
+                    agents[a]["task"] = exec_row["question"]
+                    agents[a]["last_event_at"] = ev["timestamp"]
+                    agents[a]["last_event"] = ev["message"]
+                    agents[a]["last_error"] = (ev.get("payload") or {}).get(
+                        "category")
+
+    active = [a for a in agents.values()
+              if a["status"] in ("working", "failed")]
+    return {
+        "agents": list(agents.values()),
+        "active_count": len([a for a in active if a["status"] == "working"]),
+        "failed_count": len([a for a in active if a["status"] == "failed"]),
+        "note": "Activity reflects recorded execution events only.",
+    }
+
+
+@app.get("/api/v1/executions/{execution_id}/sequence")
+def execution_sequence(execution_id: str) -> Dict[str, Any]:
+    """The REAL execution sequence for one run, derived from its events.
+
+    This system executes graph routes sequentially (no separate queue
+    service); the response presents the observed order plus the QA gate and
+    never invents dependency edges or queue entries.
+    """
+    stored = get_store().get_execution(execution_id)
+    if stored is None:
+        raise HTTPException(status_code=404, detail={
+            "human_message": "Execution not found.",
+            "why": "No execution with that ID exists locally.",
+            "recovery": "Check the execution list.",
+        })
+    events = get_store().get_events(execution_id)
+    order: List[Dict[str, Any]] = []
+    for ev in events:
+        agent = ev.get("agent_id")
+        t = ev["type"]
+        # routing.decided / qa.completed carry agent ids but are stages of
+        # their own — handle them before the generic agent-event branches.
+        if t == "routing.decided":
+            order.append({"stage": "routed", "node": agent or "supervisor",
+                          "status": "completed", "at": ev["timestamp"],
+                          "event_id": ev["event_id"], "message": ev["message"],
+                          "route": (ev.get("payload") or {}).get("route")})
+            continue
+        if t == "qa.completed":
+            order.append({"stage": "qa", "node": agent or "qa",
+                          "status": "completed", "at": ev["timestamp"],
+                          "event_id": ev["event_id"], "message": ev["message"],
+                          "qa_flags": (ev.get("payload") or {}).get("qa_flags", [])})
+            continue
+        if not agent:
+            if t == "execution.created":
+                order.append({"stage": "created", "node": None,
+                              "status": "completed", "at": ev["timestamp"],
+                              "event_id": ev["event_id"],
+                              "message": ev["message"]})
+            elif t == "routing.decided":
+                order.append({"stage": "routed", "node": "supervisor",
+                              "status": "completed", "at": ev["timestamp"],
+                              "event_id": ev["event_id"], "message": ev["message"],
+                              "route": (ev.get("payload") or {}).get("route")})
+            elif t == "qa.completed":
+                order.append({"stage": "qa", "node": "qa",
+                              "status": "completed", "at": ev["timestamp"],
+                              "event_id": ev["event_id"], "message": ev["message"],
+                              "qa_flags": (ev.get("payload") or {}).get("qa_flags", [])})
+            elif t == "execution.completed":
+                order.append({"stage": "completed", "node": None,
+                              "status": "completed", "at": ev["timestamp"],
+                              "event_id": ev["event_id"], "message": ev["message"]})
+            elif t == "execution.failed":
+                payload = ev.get("payload") or {}
+                order.append({"stage": "failed", "node": None,
+                              "status": "failed", "at": ev["timestamp"],
+                              "event_id": ev["event_id"], "message": ev["message"],
+                              "error": payload,
+                              "next_action": payload.get("recovery") or
+                                             "Retry the execution; see Settings "
+                                             "→ AI connection if the problem "
+                                             "looks provider-related."})
+            continue
+        if t == "agent.started":
+            order.append({"stage": "agent", "node": agent, "status": "running",
+                          "at": ev["timestamp"], "event_id": ev["event_id"],
+                          "message": ev["message"]})
+        elif t == "agent.completed":
+            # update the matching open entry to completed
+            for entry in reversed(order):
+                if (entry["stage"] == "agent" and entry.get("node") == agent
+                        and entry["status"] == "running"):
+                    entry["status"] = "completed"
+                    entry["completed_at"] = ev["timestamp"]
+                    break
+        elif t == "agent.failed":
+            for entry in reversed(order):
+                if (entry["stage"] == "agent" and entry.get("node") == agent
+                        and entry["status"] == "running"):
+                    entry["status"] = "failed"
+                    entry["completed_at"] = ev["timestamp"]
+                    entry["failure_category"] = (ev.get("payload") or {}).get(
+                        "category")
+                    entry["next_action"] = "Retry the execution; see Settings " \
+                        "→ AI connection if the problem looks provider-related."
+                    break
+    return {
+        "execution_id": execution_id,
+        "status": stored["status"],
+        "route": stored.get("route"),
+        "question": stored["question"],
+        "stages": order,
+        "model": "sequential graph execution (no separate queue in the "
+                 "current architecture)",
+    }
+
+
 def build_server() -> FastAPI:
     """For tests that import the app without starting uvicorn."""
     return app

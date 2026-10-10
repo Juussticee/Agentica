@@ -43,6 +43,7 @@ if a file parses as bytes instead of text (missing file readers).
 | `env\Scripts\python.exe -m pytest scripts/test_phase4_workflow_qa.py scripts/test_phase5_qa_node.py scripts/test_phase6_routing_llm.py -q` | Phase 4 workflow/QA suite (30), Phase 5 production QA node (12), Phase 6 LLM routing fallback (11) — all deterministic | no | 0 | pytest: 53 passed, 24 subtests |
 | `env\Scripts\python.exe -m pytest scripts/test_gui1_events.py scripts/test_api_preview.py -q` | GUI-1 execution events + runner lifecycle (18); GUI-2 API endpoints, validation, event cursor, honest 404s (14) | no | 0 | pytest: 32 passed |
 | `env\Scripts\python.exe -m pytest scripts/test_gui16_settings.py -q` | AI settings precedence/masking/persistence (7), readiness diagnostics vs a fake Ollama server (8), API endpoints (5) + one optional LIVE provider test (runs only with `OLLAMA_LIVE=1`) | no (fake server) | 0 | pytest: 21 passed, 1 skipped |
+| `env\Scripts\python.exe -m pytest scripts/test_gui5_operations.py -q` | Operations dashboard: service snapshot states (running/unreachable/misconfigured/degraded/not_configured JSON, fail-soft probes, ERP bound-method serialization), routing.decided + qa.completed event record, agents-activity endpoint (live + failed runs), sequence endpoint (stage order, routing/qa stage inclusion, honest 404) | no | 0 | pytest: 14 passed |
 | `env\Scripts\python.exe -m pytest scripts/test_agent_architecture.py -q` | Phase 4 agent-architecture contract (no BaseAgent, single factory, isolation) | no | 0 | 30 passed |
 | `python scripts\check_dependencies.py` | every required package imports | no | 0 | `ALL_DEPENDENCIES_OK` |
 | `python scripts\check_chroma.py` | persisted collection non-empty and text is prose | no | 0 | count + printable ratio, exit 0 |
@@ -61,8 +62,12 @@ python scripts\test_phase2.py
 python scripts\test_feasibility_degradation.py
 python scripts\test_rewrite_step.py
 python scripts\test_phase3_erp.py
-env\Scripts\python.exe -m pytest scripts/test_phase4_workflow_qa.py scripts/test_phase5_qa_node.py scripts/test_phase6_routing_llm.py scripts/test_agent_architecture.py scripts/test_gui1_events.py scripts/test_api_preview.py scripts/test_gui16_settings.py -q
+env\Scripts\python.exe -m pytest scripts/test_phase4_workflow_qa.py scripts/test_phase5_qa_node.py scripts/test_phase6_routing_llm.py scripts/test_agent_architecture.py scripts/test_gui1_events.py scripts/test_api_preview.py scripts/test_gui16_settings.py scripts/test_gui5_operations.py -q
 ```
+
+Full combined regression at the time of the operations-dashboard restore:
+**150 passed, 1 skipped, 14 subtests** (the skip is the opt-in
+`OLLAMA_LIVE=1` live provider test).
 
 Live suites are optional and consume free-tier quota (20 requests/day) — run
 them deliberately.

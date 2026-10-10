@@ -3,6 +3,9 @@ import Dashboard from './pages/Dashboard'
 import NewExecution from './pages/NewExecution'
 import Executions from './pages/Executions'
 import ExecutionDetail from './pages/ExecutionDetail'
+import Services from './pages/Services'
+import Agents from './pages/Agents'
+import TasksSequence from './pages/TasksSequence'
 import Settings from './pages/Settings'
 
 type View =
@@ -10,6 +13,9 @@ type View =
   | { name: 'new' }
   | { name: 'executions' }
   | { name: 'detail'; id: string }
+  | { name: 'services' }
+  | { name: 'agents' }
+  | { name: 'tasks' }
   | { name: 'settings' }
 
 // Hash routing keeps the multi-view shell testable without a router dependency.
@@ -20,6 +26,9 @@ function viewFromHash(): View {
   }
   if (h === 'executions') return { name: 'executions' }
   if (h === 'new') return { name: 'new' }
+  if (h === 'services') return { name: 'services' }
+  if (h === 'agents') return { name: 'agents' }
+  if (h === 'tasks') return { name: 'tasks' }
   if (h === 'settings') return { name: 'settings' }
   return { name: 'dashboard' }
 }
@@ -41,10 +50,20 @@ export default function App() {
     <div className="app">
       <aside className="sidebar">
         <div className="sidebar__brand">Agentica Control Center</div>
+        <div className="sidebar__group">Operate</div>
         <nav>
-          <a className={view.name === 'dashboard' ? 'active' : ''} onClick={() => navigate('')} href="#/">Dashboard</a>
+          <a className={view.name === 'dashboard' ? 'active' : ''} onClick={() => navigate('')} href="#/">Overview</a>
           <a className={view.name === 'new' ? 'active' : ''} onClick={() => navigate('new')} href="#/new">New Execution</a>
           <a className={view.name === 'executions' || view.name === 'detail' ? 'active' : ''} onClick={() => navigate('executions')} href="#/executions">Executions</a>
+          <a className={view.name === 'tasks' ? 'active' : ''} onClick={() => navigate('tasks')} href="#/tasks">Tasks &amp; Sequence</a>
+        </nav>
+        <div className="sidebar__group">Monitor</div>
+        <nav>
+          <a className={view.name === 'services' ? 'active' : ''} onClick={() => navigate('services')} href="#/services">Services</a>
+          <a className={view.name === 'agents' ? 'active' : ''} onClick={() => navigate('agents')} href="#/agents">Agents</a>
+        </nav>
+        <div className="sidebar__group">Configure</div>
+        <nav>
           <a className={view.name === 'settings' ? 'active' : ''} onClick={() => navigate('settings')} href="#/settings">Settings</a>
         </nav>
 
@@ -60,13 +79,11 @@ export default function App() {
       <main className="main">
         {view.name === 'dashboard' && <Dashboard onNavigate={navigate} />}
         {view.name === 'new' && <NewExecution onNavigate={navigate} />}
-        {view.name === 'executions' && (
-          <Executions
-            onNavigate={navigate}
-            openDetail={(id) => navigate(`executions/${encodeURIComponent(id)}`)}
-          />
-        )}
+        {view.name === 'executions' && <Executions />}
         {view.name === 'detail' && <ExecutionDetail id={view.id} />}
+        {view.name === 'services' && <Services />}
+        {view.name === 'agents' && <Agents />}
+        {view.name === 'tasks' && <TasksSequence />}
         {view.name === 'settings' && <Settings />}
       </main>
     </div>

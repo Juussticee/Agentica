@@ -26,6 +26,8 @@ Phase 5: COMPLETE       (production qa_node in the graph + docs sync)
 Phase 6: COMPLETE       (LLM-assisted routing, opt-in; keyword fallback)
 Control Center: GUI-1/2/3 slice restored (execution events, SQLite + API,
   React shell, history/detail) + GUI-16 partial (AI settings/readiness)
+Operations dashboard: GUI-5/GUI-7 slice restored (real service health,
+  event-derived agent activity, truthful execution sequence, mobile UI)
 ```
 
 ## Control Center (local preview)
@@ -37,6 +39,22 @@ env\Scripts\python.exe -m uvicorn app.api.server:app --host 127.0.0.1 --port 800
 # Frontend (localhost:3000, proxies /api to 8000)
 cd frontend && npm install && npm run dev
 ```
+
+Pages:
+
+* **Overview / New Execution / Executions** — run questions through the real
+  graph, browse histories, expand answers (with sources) inline.
+* **Tasks & Sequence** — enter an execution ID to see its real recorded
+  stage list: created → supervisor → routed → agents → QA → completed.
+* **Services** — live bounded health probes for the backend, SQLite storage,
+  Ollama, SearXNG, and the ERP adapter, with latency, failure reasons, and a
+  next diagnostic action.
+* **Agents** — event-derived agent activity; all agents idle between runs
+  (single sequential graph execution, no queue service yet).
+* **Settings** — AI provider connection test and persistence (partial GUI-16).
+
+The layout is responsive: below 640 px the sidebar stacks on top and cards
+are single-column.
 
 ## Stack
 

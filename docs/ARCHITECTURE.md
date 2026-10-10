@@ -6,9 +6,12 @@ ERP vendor is intentionally unspecified.
 
 Recovery additions (Control Center preview): `app/execution/` (events,
 store, runner, errors), `app/api/server.py` (FastAPI v1),
-`app/ai_settings.py` + `app/ai_diagnostics.py` (GUI-16), and a Vite+React
+`app/ai_settings.py` + `app/ai_diagnostics.py` (GUI-16),
+`app/services_health.py` (bounded live service probes), and a Vite+React
 frontend under `frontend/`. The graph itself is unchanged except that every
-route now terminates through the deterministic `qa` node.
+route now terminates through the deterministic `qa` node, and the runner
+records two additional event types (`routing.decided`, `qa.completed`) so
+the operations dashboard can show the real execution sequence.
 
 ## Topology
 
@@ -93,6 +96,8 @@ single-agent routes fall through to `END` after their node.
 | `app/tools/searxng_client.py` | 1 | `search(query, num_results)` against the SearXNG JSON API | query | `[{title, url, snippet}]` | never raises; returns `[]` on any failure |
 | `app/tools/crawl_extractor.py` | 1 | `extract(url)` → clean page text via Crawl4AI (sync wrapper over its async API) | url | text or `""` | never raises; `""` on failure; ASCII-sanitized log lines |
 | `ingest_books.py` | 1 | offline: parse PDF/DOCX → embed → persist Chroma; manifest-driven incremental ingest | files in `knowledge/books/` | `storage/` collection + manifest | binary-garbage guard raises loudly instead of silently indexing raw bytes |
+| `app/services_health.py` | ops | `services_snapshot()`: bounded (≈3.5 s budget) live probes for agentica_api, SQLite storage, Ollama `/api/tags`, SearXNG, and the ERP adapter (in-process); each result carries state, optional latency, failure reason, and a next diagnostic action | config/readiness state | JSON snapshot for `GET /api/v1/services` | each probe is fail-soft: a broken service yields `unreachable`/`misconfigured`/`degraded` with a reason, never an exception |
+| `app/execution/events.py` + `runner.py` | ops | append-only event log; now also records `routing.decided` (with `agent_id`, after the supervisor decides) and `qa.completed` (with `agent_id`) so the sequence endpoint and Agents page report event-derived truth | runner lifecycle | persisted events | events are written even on failed executions; failed agents remain visible |
 
 Dependencies worth noting: `books_agent` bridges the shared factory into
 LlamaIndex with a small `_GetLlmBridge(CustomLLM)` subclass — LlamaIndex
@@ -183,3 +188,24 @@ only file allowed to know them. The provider switch (`LLM_PROVIDER = "gemini" |
 model themselves. API keys are resolved from `.env` only and normalized into
 the process environment so libraries that read `os.environ` directly cannot
 pick up a stale OS-level key.
+
+## Operations endpoints (GUI-5/GUI-7 slice)
+
+`app/api/server.py` exposes three read-only endpoints behind the existing v1
+prefix. All derive from real state — no synthetic or cached-status data:
+
+* `GET /api/v1/services` — `services_health.services_snapshot()`: one bounded
+  probe round for every configured service (backend, SQLite storage, Ollama,
+  SearXNG, ERP adapter).
+* `GET /api/v1/agents/activity` — per-agent state (`idle`/`running`/`failed`)
+  derived exclusively from recorded events; agents idle between executions
+  because this build runs one request at a time in one process.
+* `GET /api/v1/executions/{id}/sequence` — the execution's stages rebuilt
+  from its event log (created → supervisor → routed → agents → qa →
+  completed), with a human-readable 404 for unknown IDs. There is no queue
+  service or planner dependency graph in the current architecture; those
+  views are blocked on MASTER_PLAN Phase 7/8.
+
+The frontend pages (Services, Agents, Tasks & Sequence) consume exactly these
+endpoints, and label anything not implemented (planner views, approval modes)
+as planned rather than absent-silently.

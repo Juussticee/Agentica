@@ -26,6 +26,8 @@ from app.execution.events import (
     EXECUTION_CREATED,
     EXECUTION_FAILED,
     EXECUTION_STARTED,
+    QA_COMPLETED,
+    ROUTING_DECIDED,
     SEV_ERROR,
     SEV_INFO,
     STEP_COMPLETED,
@@ -100,6 +102,15 @@ class GraphRunner:
                 )
                 try:
                     update = fn(state)
+                    if name == "supervisor":
+                        route = (state.get("route") or
+                                 (update or {}).get("route") or "research")
+                        self._event(
+                            eid, ROUTING_DECIDED,
+                            f"Routed the request to {human_step_name(route)}",
+                            agent_id=name, step_id=name,
+                            payload={"route": route},
+                        )
                 except Exception as exc:
                     is_ai = any(m.lower() in str(exc).lower()
                                 for m in _AI_PROVIDER_CRASH_MARKERS) or \
@@ -157,6 +168,14 @@ class GraphRunner:
         answer = final_state.get("answer", "")
         route = final_state.get("route", "")
         qa_flags = final_state.get("qa_flags", [])
+        # QA gate evidence (the graph's qa node just ran its update above).
+        self._event(
+            eid, QA_COMPLETED,
+            ("QA check passed" if not qa_flags
+             else f"QA noted {len(qa_flags)} issue(s)"),
+            agent_id="qa", step_id="qa",
+            payload={"qa_flags": list(qa_flags)},
+        )
         self.store.update_execution(
             eid,
             status=STATUS_COMPLETED,

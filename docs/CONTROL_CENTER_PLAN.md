@@ -1162,6 +1162,17 @@ No live updates, no row actions beyond navigation (GUI-9/15), no bulk ops.
 
 ### Phase GUI-5 — Execution detail + timeline
 
+> **Recovery status (2026-10): PARTIAL.** A truthful execution-sequence view
+> shipped early during the workspace recovery: the backend
+> `/api/v1/executions/{id}/sequence` endpoint (stage list rebuilt from the
+> append-only event log, including `routing.decided` and `qa.completed`)
+> and a **Tasks & Sequence** page render the created → supervisor → routed
+> → agents → qa → completed ordering for real executions, plus honest 404
+> handling (`scripts/test_gui5_operations.py`, 14 tests). The full GUI-5
+> detail page — step cards with WHAT/WHY/INPUT/OUTPUT/RETRIES/ERRORS, the
+> expandable timeline, technical drawer, and RESULT panel — is still
+> **NOT IMPLEMENTED** and remains this phase's definition of done.
+
 ### Goal
 The most important screen (Section 8): progress list, expandable step
 timeline, human/technical separation, result panel.
@@ -1298,6 +1309,17 @@ No controls, no dashboard live tiles (polling), no chat streaming (GUI-11
 reuses this consumer but is built later).
 
 ### Phase GUI-7 — Dashboard
+
+> **Recovery status (2026-10): PARTIAL.** Two of this phase's capabilities
+> shipped early during the workspace recovery: real bounded service-health
+> probes (`app/services_health.py`, `GET /api/v1/services`: backend, SQLite
+> storage, Ollama, SearXNG, ERP adapter — with state/latency/reason/next
+> action) and event-derived agent activity (`GET /api/v1/agents/activity`),
+> rendered on dedicated **Services** and **Agents** pages
+> (`scripts/test_gui5_operations.py`). NOT yet implemented: the aggregated
+> `/dashboard` endpoint (status counts, recent panels, merged activity
+> feed), six-tile home screen, 30 s polling, and stale-data handling —
+> the current pages poll their endpoints directly.
 
 ### Goal
 Section 4 overview: six health tiles, running/approval/failed/recent panels,

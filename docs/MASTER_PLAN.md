@@ -454,6 +454,13 @@ phases where noted (RAG-2/3 = Phase 9).
 
 ### 5.2 Planner contract (Phase 7)
 
+> **GUI note (recovery, 2026-10):** the Control Center's Tasks & Sequence
+> page and `/executions/{id}/sequence` endpoint currently model executions
+> as a **sequential graph route** (created → supervisor → routed → agents →
+> qa → completed) and say so explicitly in the UI. Planner-derived
+> dependency graphs (the `depends_on` structure below) are intentionally
+> absent until this phase lands.
+
 **Input**: `state["question"]`, current `state` (route, prior
 `agent_answers` if any), and the static capability catalog.
 
