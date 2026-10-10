@@ -37,13 +37,27 @@ def _after_books(state: AgentState):
     return "feasibility" if state.get("route") == "feasibility" else END
 
 
-def build_graph():
+def build_graph(node_wrapper=None):
+    """Compile the graph; optionally wrap every agent node for observation.
+
+    node_wrapper (optional): callable (name, node_fn) -> node_fn used by the
+    execution runner to emit events. Default path with no argument keeps the
+    exact Phase 5 behavior (all 124 regression tests call build_graph()).
+    The QA node is never wrapped (it is infrastructure, not an agent).
+    """
+    def _maybe_wrap(name, fn):
+        if node_wrapper is None or name not in (
+            "supervisor", "books", "research", "erp", "feasibility"
+        ):
+            return fn
+        return node_wrapper(name, fn)
+
     graph = StateGraph(AgentState)
-    graph.add_node("supervisor", supervisor)
-    graph.add_node("books", books_agent)
-    graph.add_node("research", research_agent)
-    graph.add_node("erp", erp_agent)
-    graph.add_node("feasibility", feasibility_agent)
+    graph.add_node("supervisor", _maybe_wrap("supervisor", supervisor))
+    graph.add_node("books", _maybe_wrap("books", books_agent))
+    graph.add_node("research", _maybe_wrap("research", research_agent))
+    graph.add_node("erp", _maybe_wrap("erp", erp_agent))
+    graph.add_node("feasibility", _maybe_wrap("feasibility", feasibility_agent))
 
     graph.add_edge(START, "supervisor")
     graph.add_conditional_edges(
