@@ -35,9 +35,14 @@ function viewFromHash(): View {
 
 export default function App() {
   const [view, setView] = useState<View>(() => viewFromHash())
+  const [navOpen, setNavOpen] = useState(false)
 
   useEffect(() => {
-    const onHash = () => setView(viewFromHash())
+    const onHash = () => {
+      setView(viewFromHash())
+      // The mobile drawer must never stay open over the new page.
+      setNavOpen(false)
+    }
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
@@ -46,34 +51,58 @@ export default function App() {
     window.location.hash = `/${to}`
   }
 
-  return (
-    <div className="app">
-      <aside className="sidebar">
-        <div className="sidebar__brand">Agentica Control Center</div>
-        <div className="sidebar__group">Operate</div>
-        <nav>
-          <a className={view.name === 'dashboard' ? 'active' : ''} onClick={() => navigate('')} href="#/">Overview</a>
-          <a className={view.name === 'new' ? 'active' : ''} onClick={() => navigate('new')} href="#/new">New Execution</a>
-          <a className={view.name === 'executions' || view.name === 'detail' ? 'active' : ''} onClick={() => navigate('executions')} href="#/executions">Executions</a>
-          <a className={view.name === 'tasks' ? 'active' : ''} onClick={() => navigate('tasks')} href="#/tasks">Tasks &amp; Sequence</a>
-        </nav>
-        <div className="sidebar__group">Monitor</div>
-        <nav>
-          <a className={view.name === 'services' ? 'active' : ''} onClick={() => navigate('services')} href="#/services">Services</a>
-          <a className={view.name === 'agents' ? 'active' : ''} onClick={() => navigate('agents')} href="#/agents">Agents</a>
-        </nav>
-        <div className="sidebar__group">Configure</div>
-        <nav>
-          <a className={view.name === 'settings' ? 'active' : ''} onClick={() => navigate('settings')} href="#/settings">Settings</a>
-        </nav>
+  const navContent = (
+    <>
+      <div className="sidebar__group">Operate</div>
+      <nav>
+        <a className={view.name === 'dashboard' ? 'active' : ''} onClick={() => navigate('')} href="#/">Overview</a>
+        <a className={view.name === 'new' ? 'active' : ''} onClick={() => navigate('new')} href="#/new">New Execution</a>
+        <a className={view.name === 'executions' || view.name === 'detail' ? 'active' : ''} onClick={() => navigate('executions')} href="#/executions">Executions</a>
+        <a className={view.name === 'tasks' ? 'active' : ''} onClick={() => navigate('tasks')} href="#/tasks">Tasks &amp; Sequence</a>
+      </nav>
+      <div className="sidebar__group">Monitor</div>
+      <nav>
+        <a className={view.name === 'services' ? 'active' : ''} onClick={() => navigate('services')} href="#/services">Services</a>
+        <a className={view.name === 'agents' ? 'active' : ''} onClick={() => navigate('agents')} href="#/agents">Agents</a>
+      </nav>
+      <div className="sidebar__group">Configure</div>
+      <nav>
+        <a className={view.name === 'settings' ? 'active' : ''} onClick={() => navigate('settings')} href="#/settings">Settings</a>
+      </nav>
 
-        <div className="sidebar__planned">
-          <div className="sidebar__planned-title">Planned (not implemented yet)</div>
-          <span title="Planned: real approval workflow">Approval Center</span>
-          <span title="Planned: knowledge management">Knowledge</span>
-          <span title="Planned: chat entry surface">Chat</span>
-          <span title="Planned: reports and artifacts">Reports</span>
-        </div>
+      <div className="sidebar__planned">
+        <div className="sidebar__planned-title">Planned (not implemented yet)</div>
+        <span title="Planned: real approval workflow">Approval Center</span>
+        <span title="Planned: knowledge management">Knowledge</span>
+        <span title="Planned: chat entry surface">Chat</span>
+        <span title="Planned: reports and artifacts">Reports</span>
+      </div>
+    </>
+  )
+
+  return (
+    <div className={`app${navOpen ? ' app--nav-open' : ''}`}>
+      {/* Compact mobile-only top bar: brand + menu toggle. Hidden on desktop. */}
+      <header className="topbar">
+        <button
+          type="button"
+          className="topbar__menu"
+          aria-label={navOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-expanded={navOpen}
+          aria-controls="sidebar-nav"
+          onClick={() => setNavOpen((o) => !o)}
+        >
+          {navOpen ? '✕' : '☰'}
+        </button>
+        <span className="topbar__brand">Agentica Control Center</span>
+      </header>
+
+      {/* Backdrop: only rendered while the drawer is open; tapping it closes. */}
+      {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} />}
+
+      <aside className="sidebar" id="sidebar-nav">
+        <div className="sidebar__brand">Agentica Control Center</div>
+        {navContent}
       </aside>
 
       <main className="main">

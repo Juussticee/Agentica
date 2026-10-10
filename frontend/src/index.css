@@ -188,6 +188,10 @@ h2 { margin: 0 0 10px; font-size: 16px; }
 .exec-card__head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .sidebar__group { color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; margin: 4px 0 2px 12px; }
 
+/* Top bar + backdrop are desktop-invisible by default; the mobile block
+   turns them on. */
+.topbar, .nav-backdrop { display: none; }
+
 .timeline { list-style: none; margin: 0; padding: 0; }
 .timeline__item { display: grid; grid-template-columns: 90px 1fr auto; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 13px; align-items: baseline; }
 .timeline__item:last-child { border-bottom: none; }
@@ -201,29 +205,98 @@ h2 { margin: 0 0 10px; font-size: 16px; }
   .truncate { max-width: 220px; }
 }
 
-/* Mobile-first (recovery spec §E): nav collapses on top, all content
-   single-column, no page-level horizontal overflow at 375–390px. */
+/* Mobile-first (recovery spec §E): compact fixed top bar + collapsible nav
+   drawer; closed menu occupies only the bar height — the dashboard starts
+   immediately below it. Desktop sidebar untouched. */
 @media (max-width: 640px) {
   .app { flex-direction: column; }
-  .sidebar { width: 100%; flex-direction: column; gap: 10px; padding: 12px; position: sticky; top: 0; z-index: 5; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
-  .sidebar__brand { font-size: 14px; }
-  .sidebar nav { flex-direction: row; flex-wrap: wrap; gap: 6px; }
-  .sidebar nav a { padding: 8px 10px; font-size: 13px; min-height: 36px; display: inline-flex; align-items: center; }
-  .sidebar__group { margin: 2px 0 0 2px; }
-  .sidebar__planned { margin-top: 4px; flex-direction: row; flex-wrap: wrap; gap: 8px; }
-  .main { padding: 14px 12px 90px; max-width: 100%; }
-  h1 { font-size: 20px; }
-  .svc-grid { grid-template-columns: 1fr; }
-  .exec-list { grid-template-columns: 1fr; }
-  .svc-meta { gap: 12px; }
-  .table { font-size: 13px; }
-  .table th, .table td { padding: 8px; }
+
+  /* Compact top bar (brand + menu toggle only) */
+  .topbar {
+    display: flex; align-items: center; gap: 10px;
+    position: sticky; top: 0; z-index: 30;
+    background: #0f172a; color: #fff;
+    padding: 8px 12px; min-height: 48px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  }
+  .topbar__menu {
+    background: transparent; color: #fff; border: 1px solid #334155;
+    border-radius: 8px; width: 40px; height: 40px; font-size: 18px; line-height: 1;
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    min-height: 40px; padding: 0;
+  }
+  .topbar__brand { font-weight: 700; font-size: 15px; }
+
+  /* Nav drawer: off-canvas; closed -> zero footprint, slides over content. */
+  .sidebar {
+    position: fixed; top: 48px; bottom: 0; left: 0;
+    width: min(80vw, 300px);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    z-index: 40; padding: 14px; gap: 12px;
+    overflow-y: auto;
+    box-shadow: none;
+  }
+  .app--nav-open .sidebar { transform: translateX(0); box-shadow: 6px 0 24px rgba(0,0,0,.3); }
+  .sidebar__brand { display: none; } /* brand lives in the top bar on mobile */
+  .nav-backdrop {
+    position: fixed; top: 48px; bottom: 0; left: 0; right: 0;
+    background: rgba(15,23,42,.45); z-index: 35;
+  }
+  .sidebar nav { flex-direction: column; gap: 4px; }
+  .sidebar nav a { min-height: 40px; display: flex; align-items: center; padding: 10px 12px; font-size: 14px; }
+  .sidebar__group { margin: 6px 0 2px 2px; }
+
+  /* Compact content */
+  .main { padding: 12px 10px 40px; max-width: 100%; }
+  h1 { font-size: 19px; margin-bottom: 4px; }
+  h2 { font-size: 15px; }
+  .card { padding: 12px; margin-top: 10px; }
+  .state { padding: 14px; }
+  .svc-grid { grid-template-columns: 1fr; gap: 10px; }
+  .exec-list { grid-template-columns: 1fr; gap: 10px; }
+  .svc-card { padding: 11px; }
+  .svc-card__head h3 { font-size: 14px; }
+  .svc-meta { gap: 10px 14px; }
+  .svc-meta dd { font-size: 12px; }
+  .table { font-size: 13px; display: block; overflow-x: auto; }
+  .table th, .table td { padding: 7px 8px; }
   .btn { min-height: 40px; padding: 9px 16px; }
+  .error-card { padding: 10px 12px; }
   .timeline__item { grid-template-columns: 1fr; gap: 3px; }
   .stage { padding-left: 9px; }
+  .stage__head { gap: 6px; }
   form.form { gap: 8px; }
   form.form-row { flex-direction: column; align-items: stretch; }
   form.form-row .btn { width: 100%; }
-  input.form, .form input:not([type]), .form input[type="password"] { width: 100%; font-size: 16px; }
+  .card .form-row { flex-direction: row; flex-wrap: wrap; }
+  .card .form-row .btn { flex: 1 1 auto; width: auto; }
+  input:not(.topbar__menu), .form input:not([type]), .form input[type="password"] { width: 100%; font-size: 16px; }
   .seq-head { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .detail-head { flex-wrap: wrap; }
+}
+
+/* Desktop / tablet: the top bar and backdrop are never rendered. */
+@media (min-width: 641px) {
+  .topbar, .nav-backdrop { display: none; }
+  .sidebar {
+    position: static; transform: none; transition: none; box-shadow: none;
+    width: 230px;
+  }
+}
+
+/* 641–900px: keep the permanently visible sidebar (existing behavior) but
+   trim its width/padding and open up content space. */
+@media (min-width: 641px) and (max-width: 900px) {
+  .sidebar { width: 200px; padding: 14px 10px; }
+  .main { padding: 20px 18px; }
+  .svc-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .exec-list { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .truncate { max-width: 180px; }
+}
+
+/* Respect reduced-motion: the drawer appears without the slide animation. */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar { transition: none; }
 }
