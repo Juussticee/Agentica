@@ -1,14 +1,21 @@
 # Master Agent System — Project Status
 
-Factual status as of Phase 3 (ERP-agnostic boundary) completion. No
-aspirational features are listed as present.
+Factual status after the recovery session (post Phase 6 + Control Center
+foundation). No aspirational features are listed as present.
 
 ```text
 Phase 1: COMPLETE
 Phase 2: COMPLETE
 Phase 3: ERP-AGNOSTIC BOUNDARY COMPLETE
 Phase 3: REAL ERP INTEGRATION NOT STARTED
-Phase 4: NOT STARTED
+Phase 4: COMPLETE (workflow/orchestration + deterministic QA test suite)
+Phase 5: COMPLETE (production qa_node in the graph; 12 tests)
+Phase 6: COMPLETE (opt-in LLM routing; 11 tests; keyword fallback intact)
+Control Center GUI-1: COMPLETE (events + runner + 18 tests)
+Control Center GUI-2: RESTORED (SQLite store + FastAPI v1 + 14 tests)
+Control Center GUI-3: RESTORED (React shell, dashboard, history, detail)
+Control Center GUI-16: PARTIAL (AI settings + 7-phase readiness + 21 tests)
+GUI-4..19: NOT STARTED
 ```
 
 ## Completed
@@ -145,11 +152,39 @@ deterministic mock adapter (`app/erp/mock_adapter.py`) provides the data
 until a real adapter is implemented. No MCP, no vendor SDK, no credentials.
 See [PHASE3_ERP_PLAN.md](PHASE3_ERP_PLAN.md).
 
-### Phase 4
+### Phase 5 note
+The deterministic QA logic (Phase 4's test-suite function) now lives in
+`app/qa_node.py` as a production graph node; every route's terminal edge
+passes through it. `test_phase4_workflow_qa.py` imports the production
+implementation instead of a local copy.
 
-QA node and LLM-based Supervisor routing have NOT been implemented.
-Routing remains deterministic keyword matching; `qa_flags` exists in
-`AgentState` as reserved space only.
+### Phase 6 note
+Routing mode is controlled by `ROUTING_MODE` in `.env`
+(`keyword` default; `llm` enables the LLM classifier with deterministic
+fallback on any error/malformed/unknown reply). Default behavior is
+byte-identical to keyword routing.
+
+### Control Center status (GUI)
+
+* **Restored and verified**: execution lifecycle, append-only event log,
+  SQLite persistence (`storage/control_center.sqlite3`), FastAPI v1
+  endpoints (health/executions/events + AI settings/test), React frontend
+  (dashboard/new/executions/detail/settings), honest failure reporting.
+* **Live checks performed**: executions answered via the real graph (ERP
+  mock route, research route via SearXNG + Ollama `qwen3:0.6b`); AI
+  connection test passed all seven phases against the live Ollama endpoint;
+  browser UI rendered persisted runs.
+* **Not implemented yet**: GUI-4..GUI-19 per [CONTROL_CENTER_PLAN.md]
+  (CONTROL_CENTER_PLAN.md) — the preview is an initial GUI-1/2/3 slice plus
+  a partial GUI-16 only.
+
+### Legacy live-test scripts
+
+`verify_graph.py`, `test_phase1_e2e.py`, `test_phase1_proxy.py`
+`check_books_agent.py`, `probe_books_prompt.py`,
+`demo_rewrite_quality.py` are historical live scripts; they may need
+updates for the Phase 5 QA-terminated graph (qa node now always runs after
+the last agent).
 
 ## Current Git History
 

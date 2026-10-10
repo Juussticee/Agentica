@@ -19,10 +19,23 @@ specialized agents and answers with provenance and honest refusals.
 ```text
 Phase 1: COMPLETE
 Phase 2: COMPLETE
-Phase 3: NOT STARTED   (ERP-agnostic integration boundary complete;
-  actual ERP integration NOT STARTED — vendor/API/auth/data model
-  intentionally deferred until the ERP is specified)
-Phase 4: NOT STARTED   (QA node, LLM-based supervisor routing)
+Phase 3: COMPLETE       (ERP-agnostic boundary; REAL ERP integration NOT
+  STARTED — vendor/API/auth/data model deferred until the ERP is specified)
+Phase 4: COMPLETE       (deterministic workflow/QA test suite)
+Phase 5: COMPLETE       (production qa_node in the graph + docs sync)
+Phase 6: COMPLETE       (LLM-assisted routing, opt-in; keyword fallback)
+Control Center: GUI-1/2/3 slice restored (execution events, SQLite + API,
+  React shell, history/detail) + GUI-16 partial (AI settings/readiness)
+```
+
+## Control Center (local preview)
+
+```text
+# API (localhost:8000)
+env\Scripts\python.exe -m uvicorn app.api.server:app --host 127.0.0.1 --port 8000
+
+# Frontend (localhost:3000, proxies /api to 8000)
+cd frontend && npm install && npm run dev
 ```
 
 ## Stack
@@ -100,11 +113,11 @@ See **[docs/TESTING.md](docs/TESTING.md)** for the full test matrix. The
 quick zero-quota set:
 
 ```bat
-python scripts\test_phase1_routing.py
-python scripts\test_phase2.py
-python scripts\test_feasibility_degradation.py
-python scripts\test_rewrite_step.py
+env\Scripts\python.exe -m pytest scripts/test_phase1_routing.py scripts/test_phase2.py scripts/test_feasibility_degradation.py scripts/test_phase3_erp.py scripts/test_phase4_workflow_qa.py scripts/test_phase5_qa_node.py scripts/test_phase6_routing_llm.py scripts/test_agent_architecture.py scripts/test_gui1_events.py scripts/test_api_preview.py scripts/test_gui16_settings.py -q
 ```
+
+(All deterministic, zero quota. The GUI-16 suite contains one optional live
+provider test that runs only with `OLLAMA_LIVE=1`.)
 
 ## Documentation
 

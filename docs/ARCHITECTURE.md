@@ -1,8 +1,14 @@
 # Architecture
 
-Status: reflects the code as of Phase 3 (ERP-agnostic boundary) completion.
-Phase 3 real ERP integration and Phase 4 (QA node, LLM supervisor routing)
-are NOT implemented — the ERP vendor is intentionally unspecified.
+Status: reflects the code after Phase 5 (production QA gate) and Phase 6
+(opt-in LLM routing). Phase 3 REAL ERP integration is NOT implemented — the
+ERP vendor is intentionally unspecified.
+
+Recovery additions (Control Center preview): `app/execution/` (events,
+store, runner, errors), `app/api/server.py` (FastAPI v1),
+`app/ai_settings.py` + `app/ai_diagnostics.py` (GUI-16), and a Vite+React
+frontend under `frontend/`. The graph itself is unchanged except that every
+route now terminates through the deterministic `qa` node.
 
 ## Topology
 
