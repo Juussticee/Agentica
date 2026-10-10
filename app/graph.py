@@ -1,8 +1,10 @@
-"""Graph wiring (spec Section 3): START -> supervisor -> agents -> END.
+"""Graph wiring (spec Section 3): START -> supervisor -> agents -> qa -> END.
 
 Phase 2: the feasibility route runs the spec's sub_routes chain first
 (research -> books -> feasibility), so both prior answers are in state when
 the feasibility agent synthesizes the study. Single-agent routes end directly.
+Phase 5: every route's terminal hop passes through the deterministic QA
+gate, which only appends state["qa_flags"] (never blocks, never routes).
 """
 
 from langgraph.graph import END, START, StateGraph
@@ -11,6 +13,7 @@ from app.agents.books_agent import books_agent
 from app.agents.erp_agent import erp_agent
 from app.agents.feasibility_agent import feasibility_agent
 from app.agents.research_agent import research_agent
+from app.qa_node import qa_node
 from app.state import AgentState
 from app.supervisor import supervisor
 
@@ -49,12 +52,21 @@ def build_graph():
         _ROUTES,
     )
     graph.add_conditional_edges(
-        "research", _after_research, {"books": "books", END: END}
+        "research",
+        _after_research,
+        # Phase 5: direct-research terminal passes through the QA gate.
+        {"books": "books", END: "qa"},
     )
     graph.add_conditional_edges(
-        "books", _after_books, {"feasibility": "feasibility", END: END}
+        "books",
+        _after_books,
+        # Phase 5: direct-books terminal passes through the QA gate.
+        {"feasibility": "feasibility", END: "qa"},
     )
-    graph.add_edge("feasibility", END)
-    graph.add_edge("erp", END)
+    graph.add_edge("feasibility", "qa")
+    graph.add_edge("erp", "qa")
+    graph.add_edge("qa", END)
+
+    graph.add_node("qa", qa_node)
 
     return graph.compile()

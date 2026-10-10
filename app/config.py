@@ -69,6 +69,16 @@ SEARXNG_URL = os.getenv("SEARXNG_URL", "http://localhost:8888")
 # unspecified) will be added later as a new adapter module behind this switch.
 ERP_ADAPTER = os.getenv("ERP_ADAPTER", "mock")
 
+# --- Supervisor routing mode (Phase 6, MASTER_PLAN) ---
+# "keyword" (default): deterministic keyword routing, byte-identical to
+# Phase 1..5 behavior. "llm": opt-in — the supervisor additionally asks the
+# configured LLM (get_llm(fast=True)) to classify the question; any LLM
+# error, malformed output, or unknown label falls back to keywords
+# deterministically. Default mode NEVER depends on a working AI provider.
+ROUTING_MODE = os.getenv("ROUTING_MODE", "keyword")
+if ROUTING_MODE not in ("keyword", "llm"):
+    raise ValueError("ROUTING_MODE must be 'keyword' or 'llm'")
+
 # --- Paths / storage ---
 BOOKS_DIR = PROJECT_ROOT / "knowledge" / "books"
 COMPANY_DIR = PROJECT_ROOT / "knowledge" / "company"

@@ -96,48 +96,29 @@ def reset_qa_flags(state: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Deterministic QA mechanism
+# Deterministic QA mechanism (Phase 5: import the production implementation)
 # ---------------------------------------------------------------------------
 
+from app.qa_node import run_qa
 
-def run_qa(state: dict) -> list[str]:
-    """Deterministic QA. Takes the completed workflow output and flags issues.
 
-    QA responsibility (per spec):
-      * evaluates whether the completed workflow produced the required output
-      * checks route-aware expectations
-      * never decides routing / never invokes agents / never replaces the
-        supervisor or the graph
-    """
-    flags = []
-    route = state.get("route", "research")
-    sources = state.get("sources") or []
-    answers = state.get("agent_answers") or {}
+def reset_qa_flags(state: dict) -> None:
+    """QA runs on a fresh qa_flags list each workflow invocation."""
+    state["qa_flags"] = []
 
-    if route in ("feasibility", "multi"):
-        # Feasibility and multi-agent routes require research + books.
-        has_research = "research" in sources or "research" in answers
-        has_books = "books" in sources or "books" in answers
-        if not has_research:
-            flags.append("QA: feasibility route missing required research output")
-        if not has_books:
-            flags.append("QA: feasibility route missing required books output")
 
-        missing = [name for name in ("research", "books") if name not in answers]
-        if missing:
-            flags.append(
-                "QA: feasibility route incomplete — missing upstream agent output(s): "
-                + ", ".join(missing)
-            )
-    elif route == "erp":
-        # ERP route must NOT be forced to need research/books.
-        if "erp" not in sources:
-            flags.append("QA: ERP route missing required erp provenance")
+def _save_graph_module_attrs(graph_module):
+    """Snapshot the real agent functions before any fake replaces them."""
+    return {
+        name: getattr(graph_module, name)
+        for name in ("books_agent", "research_agent", "feasibility_agent", "erp_agent")
+    }
 
-    if "answer" not in state or not str(state.get("answer", "")).strip():
-        flags.append("QA: final answer is empty — workflow produced no output")
 
-    return flags
+def _restore_graph_module_attrs(graph_module, snapshot):
+    """Put the real agent functions back so later suites see production code."""
+    for name, fn in snapshot.items():
+        setattr(graph_module, name, fn)
 
 
 # ---------------------------------------------------------------------------
@@ -156,6 +137,8 @@ class TestRoutingMatrix(unittest.TestCase):
 
     def setUp(self):
         import app.graph as graph_module
+        self._graph_snapshot = _save_graph_module_attrs(graph_module)
+        self.addCleanup(_restore_graph_module_attrs, graph_module, self._graph_snapshot)
 
         self.calls = []
         self.graph_calls = []
@@ -241,6 +224,8 @@ class TestFeasibilityChainOrder(unittest.TestCase):
 
     def setUp(self):
         import app.graph as graph_module
+        self._graph_snapshot = _save_graph_module_attrs(graph_module)
+        self.addCleanup(_restore_graph_module_attrs, graph_module, self._graph_snapshot)
 
         self.calls = []
         self.agent_answers = {}
@@ -321,6 +306,8 @@ class TestStatePropagation(unittest.TestCase):
 
     def setUp(self):
         import app.graph as graph_module
+        self._graph_snapshot = _save_graph_module_attrs(graph_module)
+        self.addCleanup(_restore_graph_module_attrs, graph_module, self._graph_snapshot)
 
         self.calls = []
         self.stored = {}
@@ -436,6 +423,8 @@ class TestAgentIsolation(unittest.TestCase):
         # their own calls; after a full feasibility graph run, no node
         # appears inside another node's recorded calls.
         import app.graph as graph_module
+        self._graph_snapshot = _save_graph_module_attrs(graph_module)
+        self.addCleanup(_restore_graph_module_attrs, graph_module, self._graph_snapshot)
 
         calls = []
         captured = {}
@@ -472,6 +461,8 @@ class TestFailureDegradation(unittest.TestCase):
 
     def _run(self, research_answer, books_answer, route="feasibility"):
         import app.graph as graph_module
+        self._graph_snapshot = _save_graph_module_attrs(graph_module)
+        self.addCleanup(_restore_graph_module_attrs, graph_module, self._graph_snapshot)
 
         self.calls = []
         self.stored = {"answers": {}}
@@ -604,6 +595,8 @@ class TestEndToEndFeasibility(unittest.TestCase):
 
     def test_full_feasibility_workflow(self):
         import app.graph as graph_module
+        self._graph_snapshot = _save_graph_module_attrs(graph_module)
+        self.addCleanup(_restore_graph_module_attrs, graph_module, self._graph_snapshot)
 
         self.calls = []
         self.stored = {}
