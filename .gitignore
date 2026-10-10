@@ -179,3 +179,10 @@ Thumbs.db
 [.*]s[a-rt-v][a-z]
 [.*]ss[a-gi-z]
 [._]sw[a-p]
+
+# Control Center frontend
+frontend/node_modules/
+frontend/dist/
+logs/
+storage/*.sqlite3*
+storage/ai_settings.json
