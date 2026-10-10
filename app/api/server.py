@@ -14,12 +14,14 @@ Boundaries:
 """
 
 import sqlite3
-from typing import Any, Dict, List, Optional
+import sys
+from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from app import ai_settings
 from app.execution.runner import GraphRunner
 from app.execution.store import ExecutionStore
 from app.execution.store import DEFAULT_DB_PATH
@@ -58,33 +60,29 @@ def get_runner() -> GraphRunner:
 
 
 def ai_ready() -> Dict[str, Any]:
-    """Cheap local AI-readiness assessment: configured? fail-soft True/False.
+    """Cheap local AI-readiness assessment from EFFECTIVE settings (no network).
 
-    Makes no network call: a full connectivity/model check is a GUI-16
-    "test connection" action. In 'ready' state we still assume the provider
-    works only if configured and usable at request time (honest limitation;
-    failures surface as step errors via structured execution failure).
+    Uses GUI-16 precedence: session > saved file > env/config. A full bounded
+    connectivity/model/generation check is POST /api/v1/ai/test.
     """
-    from app.config import LLM_PROVIDER
-
-    if LLM_PROVIDER == "gemini":
-        from app.config import GOOGLE_API_KEY, GEMINI_MODEL
-        configured = bool(GOOGLE_API_KEY)
+    eff = ai_settings.effective_settings()
+    provider = eff.get("llm_provider") or "gemini"
+    if provider == "gemini":
+        configured = bool(eff.get("gemini_api_key"))
         what = "Gemini"
-        model = GEMINI_MODEL
-    elif LLM_PROVIDER == "ollama":
-        from app.config import MAIN_MODEL, OLLAMA_BASE_URL
-        configured = bool(OLLAMA_BASE_URL)
-        what = f"Ollama ({OLLAMA_BASE_URL})"
-        model = MAIN_MODEL
+        model = eff.get("gemini_model")
+    elif provider == "ollama":
+        configured = bool(eff.get("ollama_base_url"))
+        what = f"Ollama ({eff.get('ollama_base_url')})"
+        model = eff.get("main_model")
     else:
         configured = False
-        what = f"unknown provider {LLM_PROVIDER!r}"
+        what = f"unknown provider {provider!r}"
         model = ""
 
     state = "ready" if configured else "not_configured"
     return {
-        "provider": LLM_PROVIDER,
+        "provider": provider,
         "state": state,
         "what_will_be_tested": f"{what}, model {model}",
         "state_hint": (
@@ -184,6 +182,127 @@ def sqlite_error_handler(request, exc):
         "recovery": "Check the storage/ folder; retry after fixing permissions.",
         "details": str(exc)[:300],
     })
+
+
+# --- AI settings (GUI-16 recovery) ------------------------------------------
+
+
+class AiSettingsUpdate(BaseModel):
+    llm_provider: Optional[Literal["gemini", "ollama"]] = None
+    gemini_api_key: Optional[str] = Field(default=None, max_length=512)
+    gemini_model: Optional[str] = Field(default=None, max_length=128)
+    main_model: Optional[str] = Field(default=None, max_length=128)
+    ollama_base_url: Optional[str] = Field(default=None, max_length=256)
+
+
+class AiTestRequest(BaseModel):
+    llm_provider: Optional[Literal["gemini", "ollama"]] = None
+    gemini_api_key: Optional[str] = Field(default=None, max_length=512)
+    gemini_model: Optional[str] = Field(default=None, max_length=128)
+    main_model: Optional[str] = Field(default=None, max_length=128)
+    ollama_base_url: Optional[str] = Field(default=None, max_length=256)
+    with_generation: bool = True
+
+
+@app.get("/api/v1/ai/settings")
+def ai_settings_get() -> Dict[str, Any]:
+    """Masked view; never returns a full API key."""
+    return ai_settings.masked_settings()
+
+
+@app.put("/api/v1/ai/settings")
+def ai_settings_set(req: AiSettingsUpdate) -> Dict[str, Any]:
+    """Persist settings for this server (explicitly requested by user)."""
+    payload = req.model_dump(exclude_none=True)
+    if not payload:
+        raise HTTPException(status_code=422, detail={
+            "human_message": "Nothing to save.",
+            "why": "The request contained no recognized settings.",
+            "recovery": "Fill in the fields you want to persist and save again.",
+        })
+    provider = payload.get("llm_provider")
+    if provider == "gemini" and payload.get("ollama_base_url") is None:
+        pass  # provider switch may also carry provider-specific fields only
+    ai_settings.persist(payload)
+    _invalidate_llm_cache()
+    return ai_settings.masked_settings()
+
+
+@app.delete("/api/v1/ai/settings")
+def ai_settings_clear() -> Dict[str, Any]:
+    """Remove persisted settings (back to env/config defaults)."""
+    ai_settings.clear_persisted()
+    ai_settings.set_session_overrides({})  # clear session too (explicit reset)
+    _invalidate_llm_cache()
+    return {"cleared": True, "settings": ai_settings.masked_settings()}
+
+
+@app.post("/api/v1/ai/test")
+def ai_test(req: AiTestRequest) -> Dict[str, Any]:
+    """Bounded provider connectivity/readiness test.
+
+    Overridden fields are TESTED but NOT saved — only PUT persists config.
+    """
+    eff = ai_settings.effective_settings()
+    body = req.model_dump(exclude_none=True)
+    provider = body.get("llm_provider") or eff.get("llm_provider") or "gemini"
+
+    # Session overrides for what the test actually exercises next time.
+    session_patch = {k: v for k, v in body.items()
+                     if k not in ("with_generation",) and v}
+
+    from app import ai_diagnostics as diag
+
+    if provider == "ollama":
+        base = body.get("ollama_base_url") or eff.get("ollama_base_url")
+        model = body.get("main_model") or eff.get("main_model")
+        result = diag.check_ollama(base, model,
+                                   with_generation=body.get("with_generation", True))
+        if result.get("state") == "ready" and session_patch:
+            ai_settings.set_session_overrides(session_patch)
+            _invalidate_llm_cache()
+        return result
+
+    if provider == "gemini":
+        key = body.get("gemini_api_key") or eff.get("gemini_api_key")
+        model = body.get("gemini_model") or eff.get("gemini_model")
+        result = diag.check_gemini(key, model)
+        if result.get("state") in ("ready", "partial") and session_patch:
+            ai_settings.set_session_overrides(session_patch)
+            _invalidate_llm_cache()
+        return result
+
+    raise HTTPException(status_code=400, detail={
+        "human_message": "Unknown AI provider.",
+        "why": f"Provider {provider!r} is not supported.",
+        "recovery": "Choose Gemini or Ollama.",
+    })
+
+
+def _invalidate_llm_cache() -> None:
+    """Session-level cache exists in some future paths; no-op for now but
+    documented as the invalidation hook (GUI-16 requirement)."""
+    for mod_name in list(sys.modules):
+        if mod_name.startswith("app."):
+            mod = sys.modules[mod_name]
+            for attr in ("_llm_cache", "_cached_llm"):
+                if hasattr(mod, attr):
+                    try:
+                        delattr(mod, attr)
+                    except Exception:
+                        pass
+
+
+# --- health_patch: use effective AI settings for the readiness block ---------
+
+
+@app.patch("/api/v1/ai/settings/session")
+def ai_settings_session(req: AiSettingsUpdate) -> Dict[str, Any]:
+    """Set THIS-session-only overrides (never persisted)."""
+    payload = {k: v for k, v in req.model_dump(exclude_none=True).items()}
+    ai_settings.set_session_overrides(payload)
+    _invalidate_llm_cache()
+    return ai_settings.masked_settings()
 
 
 def build_server() -> FastAPI:
