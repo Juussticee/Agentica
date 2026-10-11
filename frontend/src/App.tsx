@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Dashboard from './pages/Dashboard'
 import NewExecution from './pages/NewExecution'
 import Executions from './pages/Executions'
@@ -36,6 +36,8 @@ function viewFromHash(): View {
 export default function App() {
   const [view, setView] = useState<View>(() => viewFromHash())
   const [navOpen, setNavOpen] = useState(false)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const drawerRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     const onHash = () => {
@@ -46,6 +48,19 @@ export default function App() {
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
+
+  // Escape closes the mobile drawer and returns focus to the menu button.
+  useEffect(() => {
+    if (!navOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setNavOpen(false)
+        menuButtonRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [navOpen])
 
   function navigate(to: string) {
     window.location.hash = `/${to}`
@@ -87,6 +102,7 @@ export default function App() {
         <button
           type="button"
           className="topbar__menu"
+          ref={menuButtonRef}
           aria-label={navOpen ? 'Close navigation menu' : 'Open navigation menu'}
           aria-expanded={navOpen}
           aria-controls="sidebar-nav"
@@ -97,10 +113,11 @@ export default function App() {
         <span className="topbar__brand">Agentica Control Center</span>
       </header>
 
-      {/* Backdrop: only rendered while the drawer is open; tapping it closes. */}
-      {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} />}
+      {/* Backdrop: only rendered while the drawer is open; tap or focus exits
+          it to close (display handled by CSS so the mobile block enables it). */}
+      {navOpen && <div className="nav-backdrop" onMouseDown={() => setNavOpen(false)} />}
 
-      <aside className="sidebar" id="sidebar-nav">
+      <aside className="sidebar" id="sidebar-nav" ref={drawerRef}>
         <div className="sidebar__brand">Agentica Control Center</div>
         {navContent}
       </aside>

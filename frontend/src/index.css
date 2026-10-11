@@ -13,6 +13,8 @@
   --warn-border: #f59e0b;
   --err-border: #ef4444;
   --err-bg: #fef2f2;
+  /* Zero by default; raised inside the mobile media block. */
+  --safe-b: env(safe-area-inset-bottom, 0px);
 }
 
 * { box-sizing: border-box; }
@@ -219,6 +221,11 @@ h2 { margin: 0 0 10px; font-size: 16px; }
     padding: 8px 12px; min-height: 48px;
     box-shadow: 0 2px 6px rgba(0,0,0,.15);
   }
+  .topbar__brand {
+    font-weight: 700; font-size: 15px;
+    /* Long brand must never push the bar wider than the viewport. */
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   .topbar__menu {
     background: transparent; color: #fff; border: 1px solid #334155;
     border-radius: 8px; width: 40px; height: 40px; font-size: 18px; line-height: 1;
@@ -239,8 +246,12 @@ h2 { margin: 0 0 10px; font-size: 16px; }
     box-shadow: none;
   }
   .app--nav-open .sidebar { transform: translateX(0); box-shadow: 6px 0 24px rgba(0,0,0,.3); }
+  /* Scroll-lock the page behind the open drawer (desktop unaffected). */
+  .app--nav-open { overflow: hidden; height: 100vh; }
   .sidebar__brand { display: none; } /* brand lives in the top bar on mobile */
   .nav-backdrop {
+    /* Re-enable the base display:none for the backdrop only on mobile. */
+    display: block;
     position: fixed; top: 48px; bottom: 0; left: 0; right: 0;
     background: rgba(15,23,42,.45); z-index: 35;
   }
@@ -249,7 +260,7 @@ h2 { margin: 0 0 10px; font-size: 16px; }
   .sidebar__group { margin: 6px 0 2px 2px; }
 
   /* Compact content */
-  .main { padding: 12px 10px 40px; max-width: 100%; }
+  .main { padding: 12px 10px calc(40px + var(--safe-b)); max-width: 100%; }
   h1 { font-size: 19px; margin-bottom: 4px; }
   h2 { font-size: 15px; }
   .card { padding: 12px; margin-top: 10px; }
@@ -257,6 +268,9 @@ h2 { margin: 0 0 10px; font-size: 16px; }
   .svc-grid { grid-template-columns: 1fr; gap: 10px; }
   .exec-list { grid-template-columns: 1fr; gap: 10px; }
   .svc-card { padding: 11px; }
+  /* Long unbroken values (URLs, error strings) wrap inside cards instead
+     of stretching them; matches overflow-wrap used by pre/answers. */
+  .svc-meta dd, .svc-reason, .svc-next, .agent-row { overflow-wrap: anywhere; }
   .svc-card__head h3 { font-size: 14px; }
   .svc-meta { gap: 10px 14px; }
   .svc-meta dd { font-size: 12px; }
@@ -299,4 +313,10 @@ h2 { margin: 0 0 10px; font-size: 16px; }
 /* Respect reduced-motion: the drawer appears without the slide animation. */
 @media (prefers-reduced-motion: reduce) {
   .sidebar { transition: none; }
+}
+
+/* Small phones (<360px): shorten the top-bar brand to one word. */
+@media (max-width: 359px) {
+  .topbar__brand { font-size: 0; }
+  .topbar__brand::after { content: 'Agentica'; font-size: 15px; font-weight: 700; }
 }
