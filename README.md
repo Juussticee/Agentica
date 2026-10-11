@@ -136,7 +136,7 @@ Two terminals — one for the backend, one for the dashboard.
 env\Scripts\python.exe -m uvicorn app.api.server:app --host 127.0.0.1 --port 8000
 ```
 
-**Terminal 2 — dashboard (with your venv active anywhere, this needs only npm):**
+**Terminal 2 — dashboard frontend (no Python needed for this step):**
 
 ```bat
 cd frontend
@@ -191,7 +191,7 @@ history:*
 | Port 8000 already in use | Start the backend with `--port 8001`. Note the dashboard expects the backend on 8000 by default, so prefer freeing 8000 or editing the port in `frontend/vite.config.ts` |
 | Ollama not responding / connection refused | Start Ollama (run `ollama serve` in a third terminal or start the Ollama desktop app), then retry. Check `ollama list` shows both models |
 | "Model not found" in Settings → Test connection | `ollama pull qwen3:0.6b` (or the model name you set in MAIN_MODEL) |
-| Gemini key invalid / quota errors |Paste a fresh key in **Settings** → Test connection shows per-step diagnostics. The Gemini free tier has low daily limits — repeated multi-agent testing uses it up quickly |
+| Gemini key invalid / quota errors | Paste a fresh key in **Settings** → Test connection shows per-step diagnostics. The Gemini free tier has low daily limits — repeated multi-agent testing uses it up quickly |
 | Dashboard shows "Backend cannot be reached" | Terminal 1 (backend) isn't running, or exited. Check its output; restart if it shows a crash message |
 | `npm` is not recognized | Install Node.js LTS from nodejs.org and reopen the terminal |
 | First request is slow | The model loads into memory the first time; seconds later runs are faster |
