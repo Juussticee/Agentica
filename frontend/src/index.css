@@ -40,13 +40,53 @@ body { background: var(--bg); color: var(--text); }
 .sidebar__planned-title { color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; font-size: 10px; margin-bottom: 2px; }
 .sidebar__planned span { color: #64748b; cursor: default; }
 
-.main { flex: 1; padding: 26px 34px; max-width: 980px; }
-h1 { margin: 0 0 6px; font-size: 24px; }
-h2 { margin: 0 0 10px; font-size: 16px; }
+.main { flex: 1; padding: 28px 40px; /* No max-width: page content uses the
+   full available viewport width (fix for the "dashboard looks too small"
+   report; a 980px cap left ~half of a 1920px monitor empty). Individual
+   long lines stay readable via max-widths below. */ }
+h1 { margin: 0 0 6px; font-size: 26px; }
+h2 { margin: 0 0 10px; font-size: 17px; }
 .muted { color: var(--muted); font-size: 13px; }
 
-/* Cards + grid */
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+/* Wide-screen comfort: at >=1100px the content area is roomy enough to
+   widen type, controls, and card padding proportionally (no global zoom —
+   everything stays at 1x scale, values chosen per element). */
+@media (min-width: 1100px) {
+  .main { padding: 32px 48px; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 18px; margin-bottom: 12px; }
+  .card { padding: 20px; }
+  .card h2, .card h3 { font-size: 17px; }
+  .muted, .svc-reason, .svc-next, .answer, .stage__msg { font-size: 14px; }
+  .table th, .table td { padding: 11px 14px; font-size: 14px; }
+  .btn { padding: 9px 18px; font-size: 14px; }
+  .form textarea { padding: 12px; }
+  .sidebar { width: 262px; }
+  .sidebar nav a { padding: 10px 14px; font-size: 14px; }
+  .svc-grid { gap: 16px; }
+  .svc-card { padding: 16px; }
+  .exec-list { gap: 14px; }
+  .agent-row { padding: 14px 16px; }
+  .timeline__item { font-size: 14px; }
+}
+
+/* Tables stay inside their card on all widths (no page-level horizontal
+   scroll); long IDs/URLs wrap instead of stretching rows. */
+.table-wrap { max-width: 100%; overflow-x: auto; }
+.table { min-width: 0; }
+.table td, .table th { word-break: break-word; }
+
+/* Grid: two columns on wide screens so full-width pages don't stretch
+   every card edge-to-edge; falls back to one column <=900px. */
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.grid--wide { grid-template-columns: 1fr; }
+
+/* Single-column pages: prose and forms stay comfortably readable; cards
+   still stretch to use the width but text lines are capped. */
+.card > p, .card > .muted { max-width: 110ch; }
+.card:not(:has(.table, .svc-grid, .exec-list, .timeline, .stage-list)) {
+  max-width: 1400px; /* generous cap on very wide monitors; content-driven elsewhere */
+}
 .card {
   background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
   padding: 16px; margin-top: 16px;

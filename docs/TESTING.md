@@ -68,7 +68,9 @@ env\Scripts\python.exe -m pytest scripts/test_phase4_workflow_qa.py scripts/test
 
 Full combined regression at time of the Phase 7 planner commit:
 **185 passed, 1 skipped, 14 subtests** (the skip is the opt-in
-`OLLAMA_LIVE=1` live provider test).
+`OLLAMA_LIVE=1` live provider test). Re-confirmed after the Phase 7
+dashboard-sizing CSS commit: all 9 suites re-run green (83 + 102 passed
+across the two groups, same 1 skip).
 
 Live suites are optional and consume free-tier quota (20 requests/day) — run
 them deliberately.
