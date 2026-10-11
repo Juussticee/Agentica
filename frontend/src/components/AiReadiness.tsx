@@ -17,7 +17,9 @@ export function AiReadinessPanel({ ai }: { ai: AiReadinessType | null }) {
         <strong>{ok ? 'Configured' : 'Not configured'}</strong> — {ai.what_will_be_tested}
       </p>
       <p className="muted">{ai.state_hint}</p>
-      <a href="/settings" className="btn btn--ghost">Open Settings</a>
+      {/* Hash routing: /settings alone would reload the page and return to
+          the dashboard, since the router reads only the hash. */}
+      <a href="#/settings" className="btn btn--ghost">Open Settings</a>
     </section>
   )
 }
