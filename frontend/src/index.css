@@ -307,7 +307,11 @@ h2 { margin: 0 0 10px; font-size: 17px; }
   .sidebar__group { margin: 6px 0 2px 2px; }
 
   /* Compact content */
-  .main { padding: 12px 10px calc(40px + var(--safe-b)); max-width: 100%; }
+  .main { padding: 12px 10px calc(40px + var(--safe-b)); max-width: 100%; background: var(--panel); }
+  /* Also make sure the whole mobile page is white; the grey --bg body
+     background was visible as a large dead band above/below content when
+     viewed from phone-size screens. */
+  body { background: var(--panel); }
   h1 { font-size: 19px; margin-bottom: 4px; }
   h2 { font-size: 15px; }
   .card { padding: 12px; margin-top: 10px; }
