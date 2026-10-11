@@ -28,12 +28,19 @@ body { background: var(--bg); color: var(--text); }
   width: 230px; flex-shrink: 0; background: #0f172a; color: #cbd5e1;
   padding: 18px 14px; display: flex; flex-direction: column; gap: 20px;
 }
-.sidebar__brand { font-weight: 700; color: #fff; font-size: 15px; line-height: 1.3; }
+
+/* Main: content flows immediately after the sidebar and reclaims released
+   space automatically (flex). Content is centered WITHIN the main area,
+   not the viewport, and page blocks align to one consistent left edge. */
+.main-inner { max-width: 1560px; margin: 0 auto; width: 100%; }
 .sidebar nav { display: flex; flex-direction: column; gap: 4px; }
 .sidebar nav a {
   color: #cbd5e1; text-decoration: none; padding: 9px 12px; border-radius: 8px;
   cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; gap: 10px; white-space: nowrap;
 }
+.nav-icon { flex: 0 0 18px; }
+
 .sidebar nav a:hover { background: #1e293b; color: #fff; }
 .sidebar nav a.active { background: var(--primary); color: #fff; }
 .sidebar__planned { margin-top: auto; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
@@ -61,8 +68,9 @@ h2 { margin: 0 0 10px; font-size: 17px; }
   .table th, .table td { padding: 11px 14px; font-size: 14px; }
   .btn { padding: 9px 18px; font-size: 14px; }
   .form textarea { padding: 12px; }
-  .sidebar { width: 262px; }
+  .sidebar { width: 262px; padding: 18px 14px; }
   .sidebar nav a { padding: 10px 14px; font-size: 14px; }
+  .sidebar nav { display: flex; flex-direction: column; }
   .svc-grid { gap: 16px; }
   .svc-card { padding: 16px; }
   .exec-list { gap: 14px; }
@@ -74,7 +82,6 @@ h2 { margin: 0 0 10px; font-size: 17px; }
    scroll); long IDs/URLs wrap instead of stretching rows. */
 .table-wrap { max-width: 100%; overflow-x: auto; }
 .table { min-width: 0; }
-.table td, .table th { word-break: break-word; }
 
 /* Grid: two columns on wide screens so full-width pages don't stretch
    every card edge-to-edge; falls back to one column <=900px. */
@@ -336,18 +343,32 @@ h2 { margin: 0 0 10px; font-size: 17px; }
   .topbar, .nav-backdrop { display: none; }
   .sidebar {
     position: static; transform: none; transition: none; box-shadow: none;
-    width: 230px;
   }
+  /* >=1100px: full sidebar WITH labels (width from the comfort block, 262px). */
 }
 
-/* 641–900px: keep the permanently visible sidebar (existing behavior) but
-   trim its width/padding and open up content space. */
-@media (min-width: 641px) and (max-width: 900px) {
-  .sidebar { width: 200px; padding: 14px 10px; }
-  .main { padding: 20px 18px; }
-  .svc-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-  .exec-list { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
-  .truncate { max-width: 180px; }
+/* Icon-only rail (641–1099px): smaller laptops and narrow desktop previews
+   keep permanent navigation but the text labels hide, releasing ~200px for
+   content. Full labels return at >=1100px. Mobile (<=640px) uses the
+   off-canvas drawer below. Icons + title attributes keep items identifiable
+   (tooltip), aria-label keeps them announced, active state stays visible. */
+@media (min-width: 641px) and (max-width: 1099px) {
+  .sidebar { width: 62px !important; padding: 16px 9px; gap: 14px; }
+  .sidebar__brand,
+  .nav-label,
+  .sidebar__group,
+  .sidebar__planned { display: none; }
+  .sidebar nav { gap: 6px; align-items: center; }
+  .sidebar nav a {
+    width: 44px; height: 44px; padding: 0; justify-content: center;
+  }
+  .main { padding: 22px 20px; }
+  .grid { gap: 14px; }
+  .card { padding: 16px; }
+  .svc-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .svc-card { padding: 14px; }
+  .exec-list { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+  .truncate { max-width: 100%; }
 }
 
 /* Respect reduced-motion: the drawer appears without the slide animation. */
