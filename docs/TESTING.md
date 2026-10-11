@@ -41,6 +41,7 @@ if a file parses as bytes instead of text (missing file readers).
 | `python scripts\test_feasibility_degradation.py` | web-only degradation: refusal / missing key / placeholder → flagged study + Limitations; real content → normal path | no | 0 | `OK` (4 tests) |
 | `python scripts\test_phase3_erp.py` | Phase 3 ERP boundary: routing (keywords + graph), mock adapter semantics, successful read, record-not-found, adapter failure, permission denied, provenance, write protection, adapter factory, action logging | no | 0 | `OK` (35 tests) |
 | `env\Scripts\python.exe -m pytest scripts/test_phase4_workflow_qa.py scripts/test_phase5_qa_node.py scripts/test_phase6_routing_llm.py -q` | Phase 4 workflow/QA suite (30), Phase 5 production QA node (12), Phase 6 LLM routing fallback (11) — all deterministic | no | 0 | pytest: 53 passed, 24 subtests |
+| `env\Scripts\python.exe -m pytest scripts/test_phase7_planner.py -q` | Phase 7 conditional planner (35): complex detection + PLANNER_MODE gating, validate_plan branches (whitelist, duplicate/malformed ids, unknown/forward deps, unsatisfiable inputs, task cap, garbage never raises), defensive JSON parsing, planner_node fallback + only-`plan` contract, supervisor complex marking, adversarial capability | no | 0 | pytest: 35 passed |
 | `env\Scripts\python.exe -m pytest scripts/test_gui1_events.py scripts/test_api_preview.py -q` | GUI-1 execution events + runner lifecycle (18); GUI-2 API endpoints, validation, event cursor, honest 404s (14) | no | 0 | pytest: 32 passed |
 | `env\Scripts\python.exe -m pytest scripts/test_gui16_settings.py -q` | AI settings precedence/masking/persistence (7), readiness diagnostics vs a fake Ollama server (8), API endpoints (5) + one optional LIVE provider test (runs only with `OLLAMA_LIVE=1`) | no (fake server) | 0 | pytest: 21 passed, 1 skipped |
 | `env\Scripts\python.exe -m pytest scripts/test_gui5_operations.py -q` | Operations dashboard: service snapshot states (running/unreachable/misconfigured/degraded/not_configured JSON, fail-soft probes, ERP bound-method serialization), routing.decided + qa.completed event record, agents-activity endpoint (live + failed runs), sequence endpoint (stage order, routing/qa stage inclusion, honest 404) | no | 0 | pytest: 14 passed |
@@ -62,11 +63,11 @@ python scripts\test_phase2.py
 python scripts\test_feasibility_degradation.py
 python scripts\test_rewrite_step.py
 python scripts\test_phase3_erp.py
-env\Scripts\python.exe -m pytest scripts/test_phase4_workflow_qa.py scripts/test_phase5_qa_node.py scripts/test_phase6_routing_llm.py scripts/test_agent_architecture.py scripts/test_gui1_events.py scripts/test_api_preview.py scripts/test_gui16_settings.py scripts/test_gui5_operations.py -q
+env\Scripts\python.exe -m pytest scripts/test_phase4_workflow_qa.py scripts/test_phase5_qa_node.py scripts/test_phase6_routing_llm.py scripts/test_agent_architecture.py scripts/test_gui1_events.py scripts/test_api_preview.py scripts/test_gui16_settings.py scripts/test_gui5_operations.py scripts/test_phase7_planner.py -q
 ```
 
-Full combined regression at the time of the operations-dashboard restore:
-**150 passed, 1 skipped, 14 subtests** (the skip is the opt-in
+Full combined regression at time of the Phase 7 planner commit:
+**185 passed, 1 skipped, 14 subtests** (the skip is the opt-in
 `OLLAMA_LIVE=1` live provider test).
 
 Live suites are optional and consume free-tier quota (20 requests/day) — run

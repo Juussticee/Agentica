@@ -58,7 +58,20 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 # separate setup — flagged to user, intentionally not worked around).
 EMBED_MODEL = "nomic-embed-text"
 
-# --- Services ---
+# --- Planner (Phase 7, MASTER_PLAN §5.2) ---
+# "auto": planner runs only for requests the supervisor classifies complex
+# (MASTER_PLAN Phase 7 complex detection). "off": planner disabled entirely
+# (graph takes the direct execution path; graph behavior identical to
+# Phase ≤6). "always" (debug/testing only): bypass complex detection.
+PLANNER_MODE = os.getenv("PLANNER_MODE", "auto")
+if PLANNER_MODE not in ("auto", "off", "always"):
+    raise ValueError("PLANNER_MODE must be 'auto', 'off' or 'always'")
+
+# Hard cap on plan size (MASTER_PLAN §5.2: recommend 6). Larger LLM plans are
+# deterministically rejected (fallback default plan is used instead).
+MAX_PLAN_TASKS = int(os.getenv("MAX_PLAN_TASKS", "6"))
+
+# --- Services (continued after planner block so config stays grouped) ---
 # Local SearXNG container maps host port 8888 -> container 8080 (measured on
 # this machine; the spec's default 8080 had nothing listening).
 SEARXNG_URL = os.getenv("SEARXNG_URL", "http://localhost:8888")

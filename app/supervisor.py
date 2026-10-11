@@ -12,11 +12,18 @@ restricted to the four valid routing classes; any LLM error, malformed
 output, or unknown label falls back to the keyword result — default mode
 never depends on a working AI provider. The function signature and return
 contract stay identical so nothing downstream changes.
+
+Phase 7: additionally marks genuinely multi-objective requests as
+"complex" (new key: \'complex\': bool — only ever True, never written False
+so pre-Phase-7 test states are untouched). The planner (app/planner.py)
+decides whether to actually run via PLANNER_MODE; the supervisor only
+detects the need so the graph can take one conditional hop.
 """
 
 import re
 
 from app.config import ROUTING_MODE
+from app.planner import needs_planning
 from app.state import AgentState
 
 _ROUTING_PROMPT = """Classify the user question into exactly one of these labels:
@@ -92,15 +99,25 @@ def supervisor(state: AgentState) -> dict:
     ROUTING_MODE="keyword" (default): pure keyword routing, unchanged.
     ROUTING_MODE="llm": consult the LLM first; deterministic keyword result is
     the fallback whenever the LLM fails, returns garbage, or an unknown label.
+
+    Phase 7: also sets "complex": True when app.planner.needs_planning()
+    detects a multi-objective request (planner gating itself stays behind
+    PLANNER_MODE in app/planner.py — keyword routing values are unchanged).
     """
     question = state.get("question", "")
 
+    base = None
     if ROUTING_MODE == "llm":
         label = _llm_route(question)
         if label == "feasibility":
-            return {"route": "feasibility", "sub_routes": ["research", "books"]}
-        if label in _VALID_LLM_ROUTES:
-            return {"route": label}
+            base = {"route": "feasibility", "sub_routes": ["research", "books"]}
+        elif label in _VALID_LLM_ROUTES:
+            base = {"route": label}
         # LLM missing/malformed/unknown -> deterministic keyword fallback.
 
-    return keyword_route(state)
+    if base is None:
+        base = keyword_route(state)
+
+    if needs_planning(state):
+        base["complex"] = True
+    return base

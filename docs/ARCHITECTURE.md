@@ -202,9 +202,13 @@ prefix. All derive from real state — no synthetic or cached-status data:
   because this build runs one request at a time in one process.
 * `GET /api/v1/executions/{id}/sequence` — the execution's stages rebuilt
   from its event log (created → supervisor → routed → agents → qa →
-  completed), with a human-readable 404 for unknown IDs. There is no queue
-  service or planner dependency graph in the current architecture; those
-  views are blocked on MASTER_PLAN Phase 7/8.
+  completed; complex requests additionally record a "Planning the work"
+  step), with a human-readable 404 for unknown IDs. The Phase 7 planner
+  now produces a validated `plan` (with `depends_on`) in state whenever a
+  request is classified complex, but tasks are not executed from plans
+  yet — the Sequence view still shows the sequential route until the
+  Phase 8 dispatcher consumes plans; planner visualization (GUI-12) waits
+  on Phase 8.
 
 The frontend pages (Services, Agents, Tasks & Sequence) consume exactly these
 endpoints, and label anything not implemented (planner views, approval modes)

@@ -5,6 +5,10 @@ Phase 2: the feasibility route runs the spec's sub_routes chain first
 the feasibility agent synthesizes the study. Single-agent routes end directly.
 Phase 5: every route's terminal hop passes through the deterministic QA
 gate, which only appends state["qa_flags"] (never blocks, never routes).
+Phase 7: when the supervisor marked the request "complex", one conditional
+hop routes supervisor -> planner (structured plan, data only) -> the SAME
+route table below. Simple/multi requests bypass the planner, byte-identical
+to pre-Phase-7 wiring.
 """
 
 from langgraph.graph import END, START, StateGraph
@@ -13,6 +17,7 @@ from app.agents.books_agent import books_agent
 from app.agents.erp_agent import erp_agent
 from app.agents.feasibility_agent import feasibility_agent
 from app.agents.research_agent import research_agent
+from app.planner import planner_node
 from app.qa_node import qa_node
 from app.state import AgentState
 from app.supervisor import supervisor
@@ -43,7 +48,9 @@ def build_graph(node_wrapper=None):
     node_wrapper (optional): callable (name, node_fn) -> node_fn used by the
     execution runner to emit events. Default path with no argument keeps the
     exact Phase 5 behavior (all 124 regression tests call build_graph()).
-    The QA node is never wrapped (it is infrastructure, not an agent).
+    The QA node is never wrapped (it is infrastructure, not an agent), and
+    neither is the planner node (Phase 7: plan data production, not an
+    agented step).
     """
     def _maybe_wrap(name, fn):
         if node_wrapper is None or name not in (
@@ -54,14 +61,23 @@ def build_graph(node_wrapper=None):
 
     graph = StateGraph(AgentState)
     graph.add_node("supervisor", _maybe_wrap("supervisor", supervisor))
+    graph.add_node("planner", planner_node)
     graph.add_node("books", _maybe_wrap("books", books_agent))
     graph.add_node("research", _maybe_wrap("research", research_agent))
     graph.add_node("erp", _maybe_wrap("erp", erp_agent))
     graph.add_node("feasibility", _maybe_wrap("feasibility", feasibility_agent))
 
     graph.add_edge(START, "supervisor")
+    # Phase 7 conditional hop: complex requests visit the planner first,
+    # then rejoin the SAME route table (planner only adds plan data; it
+    # never routes, never executes).
     graph.add_conditional_edges(
         "supervisor",
+        lambda state: "planner" if state.get("complex") else state.get("route", "research"),
+        {"planner": "planner", **_ROUTES},
+    )
+    graph.add_conditional_edges(
+        "planner",
         lambda state: state.get("route", "research"),
         _ROUTES,
     )

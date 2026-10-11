@@ -143,8 +143,10 @@ START → supervisor → books_agent ──────────────�
 6. **Real ERP integration does not exist** — only the vendor-neutral
    boundary plus the deterministic mock (Phase 3); see Completed above.
 7. **LLM-based routing is opt-in and off by default** (`ROUTING_MODE=keyword`;
-   see the Phase 6 note below). Planners/dispatchers and per-execution
-   approval modes remain unimplemented (MASTER_PLAN Phases 7/8, GUI-10).
+   see the Phase 6 note below). The Phase 7 planner is also fail-soft and
+   never blocks a request (see the Phase 7 note below); the Phase 8
+   executor/dispatcher and per-execution approval modes remain
+   unimplemented (MASTER_PLAN Phase 8, GUI-10).
 
 ## Not Yet Implemented
 
@@ -167,6 +169,28 @@ Routing mode is controlled by `ROUTING_MODE` in `.env`
 (`keyword` default; `llm` enables the LLM classifier with deterministic
 fallback on any error/malformed/unknown reply). Default behavior is
 byte-identical to keyword routing.
+
+### Phase 7 note (planner — implemented)
+The conditional planner ships per MASTER_PLAN §5.2. `app/planner.py`
+contains `needs_planning()` (complex detection: PLANNER_MODE gate →
+deterministic multi-objective heuristic → optional LLM tie-break when
+ROUTING_MODE=llm), `default_plan()` (deterministic route-derived fallback),
+`parse_plan()` (defensive JSON-in-text decoding), `validate_plan()` (pure
+deterministic validator: whitelist capabilities, unique/well-formed
+task_ids, existing + acyclic depends_on, satisfiable required_inputs,
+MAX_PLAN_TASKS=6 cap), and `planner_node` (graph node returning ONLY
+`{"plan": ...}` — plan data, never executed here). The supervisor marks
+genuinely multi-objective requests with the new `complex: True` state key
+(never written False); the graph adds one conditional hop
+supervisor → planner → same route table. Simple/multi requests bypass the
+planner entirely — behavior for them is byte-identical to Phase ≤6.
+Any planner failure (LLM down, malformed JSON, failed validation) falls
+back to `default_plan()`; the request is still answered. NO task execution:
+planned tasks are NOT run yet — Phase 8's dispatcher consumes the plan in
+state. Config additions: `PLANNER_MODE` (auto/off/always; auto default),
+`MAX_PLAN_TASKS` (6). New state key: `plan` (justified in MASTER_PLAN §5.2).
+35 new deterministic tests in `scripts/test_phase7_planner.py` (zero
+quota); full regression 185 passed + 1 skipped.
 
 ### Control Center status (GUI)
 

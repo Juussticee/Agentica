@@ -454,12 +454,14 @@ phases where noted (RAG-2/3 = Phase 9).
 
 ### 5.2 Planner contract (Phase 7)
 
-> **GUI note (recovery, 2026-10):** the Control Center's Tasks & Sequence
-> page and `/executions/{id}/sequence` endpoint currently model executions
+> **GUI note (updated when Phase 7 landed):** the Control Center's Tasks &
+> Sequence page and `/executions/{id}/sequence` endpoint model executions
 > as a **sequential graph route** (created → supervisor → routed → agents →
-> qa → completed) and say so explicitly in the UI. Planner-derived
-> dependency graphs (the `depends_on` structure below) are intentionally
-> absent until this phase lands.
+> qa → completed) and say so explicitly in the UI. Phase 7 now produces the
+> validated `plan` (with `depends_on`) in state — see the Phase 7 spec
+> below — but the Sequence view still shows the sequential route until
+> Phase 8 actually executes plan tasks; GUI-12 (planner visualization)
+> consumes the plan post-Phase-8.
 
 **Input**: `state["question"]`, current `state` (route, prior
 `agent_answers` if any), and the static capability catalog.
@@ -866,6 +868,49 @@ no second state structure; no planning for simple/multi routes.
 
 ### Definition of done
 Plan contract + validator implemented, tested, documented; regression green.
+
+### Status (2026-10) — IMPLEMENTED
+Shipped per the spec above with these implementation notes:
+* `app/planner.py`: `needs_planning()` complex detection (PLANNER_MODE gate
+  `auto|off|always` → deterministic multi-objective heuristic → optional
+  LLM tie-break only when ROUTING_MODE=llm is already opted in);
+  `default_plan()` deterministic route-derived fallback; `parse_plan()`
+  defensive JSON-in-text decoding (fenced, prose-wrapped, bare);
+  `validate_plan()` pure validator (whitelist `research|books|erp|synthesis`
+  defined in code, unique + regex-formed task_ids, depends_on references
+  exist and may only point at earlier ids so the graph is acyclic,
+  required_inputs satisfiable from the plan's own capabilities or
+  "question", ≤ MAX_PLAN_TASKS=6, never raises); `planner_node` returns
+  ONLY `{"plan": ...}` (plan data; it executes no task) and on any LLM/
+  parse/validation failure plants the deterministic `default_plan(state)`
+  with `source`/`fallback_reasons` so Phase 8 can distinguish.
+* `app/supervisor.py`: sets the new `complex: True` state key only when
+  `needs_planning()` says so (never writes False — pre-Phase-7 states
+  unchanged); route values byte-identical.
+* `app/graph.py`: one conditional hop supervisor → planner → same route
+  table; planner node registered unwrapped (plan-data production, not an
+  agent step); all other edges unchanged.
+* `app/state.py`: `plan: Optional[dict]` (justified here in §5.2) and
+  `complex: bool` (supervisor→graph hop signal).
+* `app/config.py`: `PLANNER_MODE` (default auto; off = graph identical to
+  Phase ≤6) and `MAX_PLAN_TASKS` (default 6), both env-overridable.
+* `app/execution/runner.py`: human step name "Planning the work"; one
+  `agent.completed` event when a plan is present (plan DATA — never
+  execution progress).
+* Tests: `scripts/test_phase7_planner.py`, 35 deterministic fake-LLM tests
+  (zero quota/quota network): detection, PLANNER_MODE gating, every
+  validate_plan branch, adversarial capability JSON, malformed JSON,
+  task-count cap, fallback and only-`plan` contract, non-mutation of
+  answer/sources/agent_answers, supervisor complex marking.Regression
+  floor updated only where §5.2 required it (AgentState expected-key set
+  gains `complex` + `plan`).
+* Verified: full regression **185 passed + 1 skipped + 14 subtests**; live
+  Ollama `qwen3:0.6b` generation verified (bounded chat call, correct
+  answer). Gemini path verified incidentally during a live planner probe
+  (one real Gemini generation returned a valid plan).
+* NOT implemented (next phases): Phase 8 dispatcher/execution, retries,
+  synthesis, reviewer, replanning. Planned tasks are NOT executed by this
+  phase — a plan in state is data only.
 
 ---
 

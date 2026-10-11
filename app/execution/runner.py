@@ -44,6 +44,7 @@ from app.execution.store import (
 
 _HUMAN_STEP_NAMES = {
     "supervisor": "Understanding the request",
+    "planner": "Planning the work",
     "research": "Researching the web",
     "books": "Checking internal knowledge",
     "erp": "Looking up business data",
@@ -77,6 +78,7 @@ class GraphRunner:
     def __init__(self, store: ExecutionStore):
         self.store = store
         self._seq = count(1)
+        self._seen = set()
 
     # -- helpers ----------------------------------------------------------
 
@@ -96,6 +98,19 @@ class GraphRunner:
     def _node_wrapper(self, eid):
         def wrap(name, fn):
             def wrapped(state):
+                # Phase 7: record the plan as a real event when present
+                # (plan DATA only — not execution progress, per §5.2).
+                plan = state.get("plan")
+                if plan and name != "planner" and "planner" not in self._seen:
+                    self._seen.add("planner")
+                    self._event(
+                        eid, AGENT_COMPLETED,
+                        "Plan ready: "
+                        + str(len(plan.get("tasks", []))) + " task(s) ("
+                        + str(plan.get("source", "unknown")) + ")",
+                        agent_id="planner", step_id="planner",
+                        payload={"plan_source": plan.get("source")},
+                    )
                 self._event(
                     eid, AGENT_STARTED, f"{human_step_name(name)} started",
                     agent_id=name, step_id=name,

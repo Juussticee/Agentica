@@ -189,9 +189,13 @@ class TestNoCrossAgentCoupling(unittest.TestCase):
 # --------------------------------------------------------------------------- #
 class TestStateStability(unittest.TestCase):
     def test_agentstate_has_expected_keys(self):
+        # Phase 7 (MASTER_PLAN §5.2): the plan key joins as the sole channel
+        # between planner and (Phase 8) executor nodes; "complex" marks
+        # multi-objective requests for the graph's conditional hop.
         expected = {
             "question", "route", "sub_routes", "sources",
             "answer", "qa_flags", "agent_answers",
+            "complex", "plan",
         }
         self.assertEqual(set(AgentState.__annotations__), expected)
 

@@ -24,6 +24,9 @@ Phase 3: COMPLETE       (ERP-agnostic boundary; REAL ERP integration NOT
 Phase 4: COMPLETE       (deterministic workflow/QA test suite)
 Phase 5: COMPLETE       (production qa_node in the graph + docs sync)
 Phase 6: COMPLETE       (LLM-assisted routing, opt-in; keyword fallback)
+Phase 7: COMPLETE       (conditional planner: validated structured plans as
+  data in state, deterministic fallback; NO task execution — plans await
+  the Phase 8 dispatcher)
 Control Center: GUI-1/2/3 slice restored (execution events, SQLite + API,
   React shell, history/detail) + GUI-16 partial (AI settings/readiness)
 Operations dashboard: GUI-5/GUI-7 slice restored (real service health,
