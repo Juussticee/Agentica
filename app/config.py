@@ -71,6 +71,12 @@ if PLANNER_MODE not in ("auto", "off", "always"):
 # deterministically rejected (fallback default plan is used instead).
 MAX_PLAN_TASKS = int(os.getenv("MAX_PLAN_TASKS", "6"))
 
+# Per-task retry budget (MASTER_PLAN §5.6). Phase 8 does NOT retry (a failed
+# task is recorded and the plan continues); the constant exists so Phase 8's
+# hard dispatcher iteration cap is expressed as MAX_PLAN_TASKS *
+# (1 + MAX_TASK_RETRIES) and rises when Phase 12 adds retries.
+MAX_TASK_RETRIES = int(os.getenv("MAX_TASK_RETRIES", "2"))
+
 # --- Services (continued after planner block so config stays grouped) ---
 # Local SearXNG container maps host port 8888 -> container 8080 (measured on
 # this machine; the spec's default 8080 had nothing listening).

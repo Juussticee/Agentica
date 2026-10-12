@@ -390,13 +390,18 @@ def planner_node(state: AgentState) -> dict:
 
     parsed: Optional[dict] = None
     plan_source = "default"
+    llm_down = False
     try:
         response = get_llm(fast=True).invoke(
             _PLANNER_PROMPT.format(question=question)
         )
         parsed = parse_plan(llm_text(response))
     except Exception:
-        parsed = None  # any provider failure → deterministic fallback
+        # Provider failure → deterministic fallback (contract above). The
+        # plan carries WHY so downstream QA can surface a clear, honest
+        # "AI service is down" signal instead of a silent degradation.
+        parsed = None
+        llm_down = True
 
     if parsed is not None:
         candidate_plan = dict(parsed)
@@ -414,10 +419,14 @@ def planner_node(state: AgentState) -> dict:
             plan["source"] = "fallback"
             plan["fallback_reasons"] = reasons[:5]
     else:
-        # No parsable LLM output (provider failure OR unparseable text).
+        # No parsable LLM output: distinguish a DOWN provider (connection
+        # refused / timeout / auth) from a parsable-but-garbage response so
+        # the fallback reason is honest about the service state.
         plan = default_plan(state)
         plan["source"] = "fallback"
         plan["fallback_reasons"] = [
-            "planner LLM unavailable or returned no parsable plan"
+            ("AI planning service is unavailable (connection failed) — "
+             "used the built-in fallback plan") if llm_down
+            else "planner LLM returned no parsable plan"
         ]
     return {"plan": plan}

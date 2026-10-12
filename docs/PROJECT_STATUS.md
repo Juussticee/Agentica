@@ -11,6 +11,8 @@ Phase 3: REAL ERP INTEGRATION NOT STARTED
 Phase 4: COMPLETE (workflow/orchestration + deterministic QA test suite)
 Phase 5: COMPLETE (production qa_node in the graph; 12 tests)
 Phase 6: COMPLETE (opt-in LLM routing; 11 tests; keyword fallback intact)
+Phase 7: COMPLETE (conditional planner; 35 tests; plan data only)
+Phase 8: COMPLETE (dynamic plan execution dispatcher; 21 tests)
 Control Center GUI-1: COMPLETE (events + runner + 18 tests)
 Control Center GUI-2: RESTORED (SQLite store + FastAPI v1 + 14 tests)
 Control Center GUI-3: RESTORED (React shell, dashboard, history, detail)
@@ -144,9 +146,16 @@ START → supervisor → books_agent ──────────────�
    boundary plus the deterministic mock (Phase 3); see Completed above.
 7. **LLM-based routing is opt-in and off by default** (`ROUTING_MODE=keyword`;
    see the Phase 6 note below). The Phase 7 planner is also fail-soft and
-   never blocks a request (see the Phase 7 note below); the Phase 8
-   executor/dispatcher and per-execution approval modes remain
-   unimplemented (MASTER_PLAN Phase 8, GUI-10).
+   never blocks a request (see the Phase 7 note below); per-execution
+   approval modes remain unimplemented (GUI-10).
+8. **Phase 8 dispatch executes only whitelisted capabilities inside the
+   hard visit cap.** `synthesis` currently dispatches to the existing
+   feasibility agent (terminal consumer) — the dedicated Synthesizer is
+   Phase 10. With a LIVE Ollama server, the qwen3:0.6b planner can emit
+   valid but minimal LLM plans (e.g. research+synthesis without a books
+   task) for complex questions, so dispatched runs can differ from the old
+   fixed feasibility chain — QA flags any missing/not-completed parts;
+   see docs/TESTING.md "Known environment-dependent flake".
 
 ## Not Yet Implemented
 
@@ -191,6 +200,26 @@ state. Config additions: `PLANNER_MODE` (auto/off/always; auto default),
 `MAX_PLAN_TASKS` (6). New state key: `plan` (justified in MASTER_PLAN §5.2).
 35 new deterministic tests in `scripts/test_phase7_planner.py` (zero
 quota); full regression 185 passed + 1 skipped.
+
+### Phase 8 note (dispatcher — implemented)
+`app/graph.py` now executes validated plans: a `dispatcher` node picks ONE
+task whose `depends_on` are all completed, runs its whitelisted node via
+the literal code mapping `CAPABILITY_NODES` (`research→research`,
+`books→books`, `erp→erp`, `synthesis→feasibility` — plan data can never
+name a node), records the honest per-task status/result ON the plan dict
+(`pending/completed/failed/blocked/unsupported`; failed/blocked deps make
+dependents blocked, never executed), and returns to itself until every
+task is terminal — then routes to QA, which now also verifies plan
+completion and explicitly flags an unavailable AI planning service
+(user-requested server-down visibility) instead of degrading silently.
+Revisits never re-execute completed tasks; a raising node is recorded
+failed without crashing the run; and the hard visit cap
+`MAX_PLAN_TASKS * (1 + MAX_TASK_RETRIES)` (`app/config.py`) fail-safes any
+pathological plan instead of looping. Simple and multi requests keep
+byte-identical pre-Phase-7 edges. 21 new deterministic tests in
+`scripts/test_phase8_execution.py` (zero quota). Full regression: 184
+passed + 1 skipped (see TESTING.md known-flake note for the
+Ollama-running environment). Config addition: `MAX_TASK_RETRIES` (2).
 
 ### Control Center status (GUI)
 

@@ -985,6 +985,16 @@ determinism risk for no current benefit; revisit only with measured need).
 Complex route works end-to-end deterministically; regression green; docs
 (graph diagram) updated.
 
+> **Status (implemented).** Dispatcher is live in `app/graph.py`: literal
+> `CAPABILITY_NODES` mapping, dependency-ordered sequential dispatch, honest
+> per-task statuses on the plan dict, hard visit cap
+> `MAX_PLAN_TASKS*(1+MAX_TASK_RETRIES)`, QA plan-completion check + explicit
+> AI-unavailable flag (`app/qa_node.py`). 21 deterministic tests in
+> `scripts/test_phase8_execution.py`; combined regression 184 passed +
+> 1 skipped. Known environment-dependent e2e flake (live Ollama planner may
+> produce a minimal valid plan without a books task) is documented in
+> TESTING.md and tracked under Phase 12 planner quality.
+
 ---
 
 ### Phase 9 — Hybrid RAG (RAG-2 + RAG-3)

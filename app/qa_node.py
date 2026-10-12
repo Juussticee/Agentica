@@ -46,6 +46,30 @@ def run_qa(state: dict) -> List[str]:
     if not str(state.get("answer") or "").strip():
         flags.append("QA: final answer is empty — workflow produced no output")
 
+    # Phase 8 (MASTER_PLAN §5.3 / §5.5): when a dispatched plan exists,
+    # QA verifies plan completion honestly — any task that did NOT complete
+    # successfully is flagged (failed / blocked / unsupported / cap-exhausted).
+    plan = state.get("plan")
+    if isinstance(plan, dict) and isinstance(plan.get("tasks"), list):
+        # Planner fell back because the AI service is DOWN: surface that as
+        # its own clear flag (user-requested server-down UX) — distinct from
+        # task-level failures so "why is my answer degraded?" is answerable.
+        reasons = " | ".join(str(r) for r in plan.get("fallback_reasons") or [])
+        if plan.get("source") == "fallback" and "unavailable" in reasons:
+            flags.append(
+                "QA: AI planning service unavailable — answered with the "
+                "built-in fallback plan"
+            )
+        failed = [
+            t.get("task_id", "?")
+            for t in plan["tasks"]
+            if isinstance(t, dict) and t.get("status") not in (None, "completed")
+        ]
+        if failed:
+            flags.append(
+                "QA: plan incomplete — task(s) not completed: " + ", ".join(failed)
+            )
+
     return flags
 
 

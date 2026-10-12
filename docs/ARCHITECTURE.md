@@ -1,7 +1,8 @@
 # Architecture
 
-Status: reflects the code after Phase 5 (production QA gate) and Phase 6
-(opt-in LLM routing). Phase 3 REAL ERP integration is NOT implemented — the
+Status: reflects the code after Phase 5 (production QA gate), Phase 6
+(opt-in LLM routing), Phase 7 (conditional planner) and Phase 8 (dynamic
+plan execution). Phase 3 REAL ERP integration is NOT implemented — the
 ERP vendor is intentionally unspecified.
 
 Recovery additions (Control Center preview): `app/execution/` (events,
@@ -64,6 +65,13 @@ START → supervisor → books_agent (or research_agent) → END
 
 Phase 2 feasibility route:
 START → supervisor → research_agent → books_agent → feasibility_agent → END
+
+Phase 7+8 complex route:
+START → supervisor → planner (complex request) → dispatcher ⇄ (one whitelisted
+node per visit: research/books/erp/feasibility) → QA when every task terminal
+START → supervisor → (route table) → agents → END
+Simple and multi requests share the exact pre-Phase-7 edges (their conditional
+edges and route table are unchanged; they never reach planner/dispatcher).
 
 Phase 3 ERP route:
 START → supervisor → erp_agent → ERP Adapter Interface → MockERPAdapter → END
@@ -203,12 +211,16 @@ prefix. All derive from real state — no synthetic or cached-status data:
 * `GET /api/v1/executions/{id}/sequence` — the execution's stages rebuilt
   from its event log (created → supervisor → routed → agents → qa →
   completed; complex requests additionally record a "Planning the work"
-  step), with a human-readable 404 for unknown IDs. The Phase 7 planner
-  now produces a validated `plan` (with `depends_on`) in state whenever a
-  request is classified complex, but tasks are not executed from plans
-  yet — the Sequence view still shows the sequential route until the
-  Phase 8 dispatcher consumes plans; planner visualization (GUI-12) waits
-  on Phase 8.
+  step and now EXECUTE the plan through the Phase 8 dispatcher — one
+  whitelisted capability→node hop per dispatcher visit
+  (`research→research`, `books→books`, `erp→erp`, `synthesis→feasibility`;
+  the plan data can never name a node directly), looping until every task
+  has a terminal status (pending/completed/failed/blocked/unsupported) or
+  the hard visit cap `MAX_PLAN_TASKS*(1+MAX_TASK_RETRIES)` fires and the
+  plan fails safe. Per-task status/result bookkeeping lives ON the plan
+  dict (no new AgentState keys), and deterministic QA now also verifies
+  plan completion and explicitly flags an unavailable AI planning service
+  instead of degrading silently.
 
 The frontend pages (Services, Agents, Tasks & Sequence) consume exactly these
 endpoints, and label anything not implemented (planner views, approval modes)
