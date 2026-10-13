@@ -31,7 +31,8 @@ class FakeGemini:
         self.last_prompt = str(prompt)
         low = self.last_prompt.lower()
         if "quantum tunneling" in low:
-            return _FakeMessage("That information was not found in your books.")
+            return _FakeMessage(
+                "The requested information was not found in the books.")
         if "delta-v" in low and "hohmann" in low:
             return _FakeMessage(
                 "A LEO-to-GTO Hohmann transfer needs about 2.4 km/s, plus ~1.5 km/s "
@@ -65,7 +66,8 @@ def main():
     # --- books_agent: not-found refusal path ---
     r = books_agent({"question": "What is quantum tunneling?"})
     print("[books/tunneling] answer:", r["answer"][:100])
-    assert r["answer"].startswith("That information was not found in your books")
+    assert r["answer"].startswith(
+        "The requested information was not found in the books")
 
     # --- research_agent: real search + crawl, fake synthesis ---
     r = research_agent({"question": "what is langgraph"})

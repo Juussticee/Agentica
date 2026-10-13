@@ -108,7 +108,11 @@ REPORTS_DIR = PROJECT_ROOT / "reports"            # feasibility_agent .docx outp
 
 # --- Books retrieval tuning ---
 CHROMA_COLLECTION = "books"
-# Below this cosine similarity, books_agent answers "not found in your books".
+# Below this cosine similarity, books_agent refuses per the RAG grounding
+# rules (spec section 2.1). NOT_FOUND_PHRASE is the MANDATED user-facing
+# refusal: it must explicitly state what happened when the requested
+# information is absent, and must never carry a references footer (a
+# refusal presents no evidence, so it cites none).
 BOOKS_MIN_SCORE = 0.35
 BOOKS_TOP_K = 3
-NOT_FOUND_PHRASE = "That information was not found in your books."
+NOT_FOUND_PHRASE = "The requested information was not found in the books."

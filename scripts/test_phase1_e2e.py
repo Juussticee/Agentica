@@ -30,7 +30,8 @@ def main() -> None:
     r = books_agent({"question": "What is quantum tunneling?"})
     print(f"\n[step3b books-refusal] ({time.perf_counter() - t0:.0f}s)")
     print(r["answer"][:200])
-    assert r["answer"].startswith("That information was not found in your books"), (
+    assert r["answer"].startswith(
+            "The requested information was not found in the books"), (
         "out-of-corpus question must be refused, not invented"
     )
 
