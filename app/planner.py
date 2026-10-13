@@ -355,9 +355,14 @@ def validate_plan(plan: object) -> Tuple[bool, List[str]]:
 _PLANNER_PROMPT = """You are a task planner. Decompose the user request into
 SMALL, ordered tasks. Each task is executed by ONE capability:
 - research: general web research
-- books: answering from the user's own book library
+- books: answering from the user's own book library or manual
 - erp: ERP business data (invoices, inventory, orders, customers)
 - synthesis: combining prior task outputs into a final answer
+
+EVERY distinct information need stated in the request must be covered by at
+least one task. A request that mentions documents, a manual, or a library
+MUST include a books task. A request asking for a study or assessment is a
+synthesis task that depends on every prior task's outputs.
 
 Reply with ONLY a JSON object, no code fences, no prose, shaped exactly like:
 {{"goal": "...", "tasks": [{{"task_id": "t1", "capability": "research",
