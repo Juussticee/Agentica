@@ -32,14 +32,91 @@ GUI-4, GUI-6, GUI-8..19: NOT STARTED
   with `llama-index-readers-file`; LlamaIndex chunking; Ollama
   `nomic-embed-text` embeddings; binary-garbage guard (NUL bytes, magic
   signatures, printable/letter ratios) fails loudly instead of indexing bytes.
+  M2 integrity: per-file `indexed` / `partial` / `failed` status backed by
+  store-verified chunk counts (a reader that silently skips a file can no
+  longer be recorded as a success); pages with no extractable text reported by
+  page rather than assumed blank (no OCR in this build); size and PDF page caps
+  enforced before the reader loads the file; replacement inserts before it
+  deletes, so a failed re-ingest never drops the previous version; exit code 1
+  when any file failed.
 - **Chroma persistence**: cosine-similarity collection in `storage/`,
-  incremental re-ingest driven by `storage/.index_manifest.json`
-  (filename → mtime).
+  incremental re-ingest driven by `storage/.index_manifest.json` (schema v2:
+  per-file mtime, status, extracted page counts, pages without extractable
+  text, and the chunk count *verified against the vector store*; schema-v1
+  entries are migrated and re-verified rather than trusted).
 - **Books Agent**: LlamaIndex query engine over Chroma; shared-LLM bridge
   (`_GetLlmBridge`) because the LangChain↔LlamaIndex bridge package is broken
   with modern LangChain; `References: file, page` provenance; refusal with the
   exact phrase "That information was not found in your books." on out-of-corpus
   questions (prompt-level instruction + `BOOKS_MIN_SCORE` score floor).
+  M3 citation integrity: the footer is rebuilt only from the retrieved nodes'
+  own metadata, and only for nodes that actually supported a retained claim;
+  model-written filenames/pages/tables are validated against the retrieved
+  metadata (mismatch ⇒ the claim is dropped), any References/Sources block
+  emitted by the model is stripped, prompt-injection cues in retrieved text
+  are dropped as content, missing metadata yields an explicit "attribution
+  unavailable" marker, and refusals never carry a footer. Claim support is a
+  deterministic token/metadata gate, NOT semantic entailment. M4B adds an
+  OPT-IN bounded verifier (`BOOKS_VERIFIER=local`, default `off` = byte-
+  identical M3 behavior): each retained claim is classified
+  (supported / contradicted / insufficient_evidence / uncertain) against
+  only its assigned passages via the shared LLM factory, with hard bounds
+  (6 claims, 2000 evidence chars, 10 s/claim, 30 s total, zero retries,
+  daemon-thread timeout — langchain_ollama has none). M4B-H hardening: a
+  process-wide 6-permit in-flight budget with fail-fast `busy` (no thread
+  spawned when exhausted; permits released exactly once including zombie
+  time), a factory-level httpx transport bound that reclaims abandoned
+  requests at claim-timeout + 5 s (non-streaming invoke on ollama — the
+  installed ChatOllama streams by default, under which the read timeout
+  bounds only inter-chunk gaps; SDK retries pinned to 0 on gemini, whose
+  installed default is six). The verdict is
+  monotone: it can only REMOVE claims (fail-closed), never add, rewrite or
+  bless content, and its reasons never reach users. The confirmed D1
+  (relation reversal) and D2 (numeric conflict) defects are closed on this
+  path; a version-controlled benchmark (38 cases, three layers per case:
+  deterministic baseline, scripted verifier verdict, integrated design
+  target) is green on both drift gates, with 17 annotated baseline-gaps
+  that only the verifier path closes; the optional local-model experiment
+  at the production 10 s bound shows model latency (not verdict quality)
+  is the binding constraint — and it is a small-sample latency run, not a
+  measurement of semantic accuracy; real-model entailment quality remains
+  unverified. G1: absolute `file_path` metadata no longer
+  reaches the LLM context (query-time allowlist; stored metadata and
+  citation provenance untouched).
+  M4C claim-level evidence attribution (verification-enabled mode only):
+  every retained claim keeps its OWN evidence set — the deterministic
+  covering set for its sentence, narrowed by the verifier's per-claim
+  `evidence_ids`, which are whitelist-validated against exactly the
+  evidence supplied for that claim (an unknown id, or a valid id
+  belonging to a different claim, degrades to malformed → fail-closed
+  removal + fixed disclosure — strict JSON validation and id whitelisting
+  not weakened). The footer in this mode is one numbered line per
+  retained claim, `[n] <ref>[; <ref>…] (verifier-supported: <claim>)`,
+  built from that claim's retained nodes only, so a source supporting one claim is
+  never presented as supporting another. The parenthetical is
+  deliberately ATTRIBUTED wording: it reports the bounded verifier's
+  per-claim judgment on the shown passages — a heuristic/small-model
+  verdict — not independently established semantic entailment; a
+  single claim genuinely backed by several passages keeps all of them
+  on its own line; a claim with no
+  adequate attributable evidence is removed/disclosed (or refused
+  outright when nothing survives), and refusals still carry no footer.
+  Contradiction handling is claim-scoped and kept separate from
+  attribution (a valid citation can still contradict its own claim): a
+  reversed or numerically conflicting claim is removed with the conflict
+  note while sibling claims keep exactly their own citations. This is
+  claim-level attribution, NOT semantic entailment: the deterministic
+  gate stays token/metadata coverage, clause-level splitting and general
+  NLI/arithmetic are deliberately absent, and unresolved cases resolve to
+  removal + fixed disclosure instead of a confident guess.
+  `BOOKS_VERIFIER=off` (still the default) is unchanged: byte-identical
+  M3 answer-level footer. Evidence-ID validation, citation construction,
+  covered/unresolved contradiction cases, exact commands, and the
+  deterministic-vs-scripted-vs-live test distinction are documented in
+  docs/TESTING.md ("M4C — what the tests prove"); 35 dedicated offline
+  tests in `scripts/test_m4c_attribution.py` assert the actual
+  claim→evidence mapping, and the benchmark checks an exact
+  `expected_mapping` on the verified layer (6/6).
 - **SearXNG client** (`app/tools/searxng_client.py`): JSON API search,
   fail-soft (never raises).
 - **Crawl4AI extractor** (`app/tools/crawl_extractor.py`): sync wrapper over
