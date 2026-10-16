@@ -116,3 +116,55 @@ CHROMA_COLLECTION = "books"
 BOOKS_MIN_SCORE = 0.35
 BOOKS_TOP_K = 3
 NOT_FOUND_PHRASE = "The requested information was not found in the books."
+
+# --- Ingest integrity / resource limits (M2) -------------------------------
+# Both caps are enforced BEFORE a file's text is decoded: the size check runs
+# on stat() alone, and the page cap runs on the PDF xref/trailer (pypdf, already
+# present via llama-index-readers-file) before any page content is extracted.
+# The sample corpus is under 40 KB per file, so these are crash guards, not
+# tuning knobs. A value <= 0 disables the corresponding cap.
+INGEST_MAX_FILE_MB = int(os.getenv("INGEST_MAX_FILE_MB", "50"))
+INGEST_MAX_PAGES = int(os.getenv("INGEST_MAX_PAGES", "500"))
+# Document types the ingest understands (the reader has no OCR/vision path).
+INGEST_EXTENSIONS = (".pdf", ".docx")
+# Manifest schema version. v1 was a flat {absolute_path: mtime_ns} map that
+# recorded a file as done even when the reader had silently skipped it. v2
+# records per-file status + persisted chunk counts; v1 entries are migrated
+# explicitly and their chunk counts verified against the vector store instead
+# of being trusted.
+INGEST_MANIFEST_VERSION = 2
+
+# --- M4B semantic verification (experimental) -----------------------------
+# "off" (default): the books agent behaves byte-identically to M3 — the
+# deterministic token/metadata gate is the only support check.
+# "local": every RETAINED claim is additionally classified by a bounded
+# verifier (app/verifier.py) through the same get_llm() factory. The
+# verifier is monotone: it can only REMOVE claims (never add, rewrite, or
+# bless content) and it never authors citations. Read at call time so tests
+# can toggle it per-test.
+BOOKS_VERIFIER = os.getenv("BOOKS_VERIFIER", "off")
+if BOOKS_VERIFIER not in ("off", "local"):
+    raise ValueError("BOOKS_VERIFIER must be 'off' or 'local'")
+# Hard fail-safe bounds. Each is enforced inside app/verifier.py (claims
+# beyond the cap are NOT verified — fail-closed: removed and disclosed).
+BOOKS_VERIFIER_MAX_CLAIMS = int(os.getenv("BOOKS_VERIFIER_MAX_CLAIMS", "6"))
+BOOKS_VERIFIER_EVIDENCE_MAX_CHARS = int(
+    os.getenv("BOOKS_VERIFIER_EVIDENCE_MAX_CHARS", "2000")
+)
+BOOKS_VERIFIER_CLAIM_TIMEOUT = float(
+    os.getenv("BOOKS_VERIFIER_CLAIM_TIMEOUT", "10")
+)
+BOOKS_VERIFIER_TOTAL_DEADLINE = float(
+    os.getenv("BOOKS_VERIFIER_TOTAL_DEADLINE", "30")
+)
+# M4B-H hardening: process-wide bound on CONCURRENT verifier model calls.
+# Claims within one answer are verified sequentially (one permit at a time),
+# but a call that exceeds its timeout cannot be cancelled: its daemon thread
+# keeps the underlying HTTP request alive until the transport gives up. This
+# budget bounds that lingering work to BOOKS_VERIFIER_MAX_INFLIGHT requests
+# across the WHOLE process (all answers, not just one). Once exhausted, any
+# further verification fails fast as `unavailable(busy)` — fail-closed, never
+# a false "supported". A value < 1 is invalid.
+BOOKS_VERIFIER_MAX_INFLIGHT = int(os.getenv("BOOKS_VERIFIER_MAX_INFLIGHT", "6"))
+if BOOKS_VERIFIER_MAX_INFLIGHT < 1:
+    raise ValueError("BOOKS_VERIFIER_MAX_INFLIGHT must be >= 1")
