@@ -34,9 +34,15 @@ class FakeGemini:
             return _FakeMessage(
                 "The requested information was not found in the books.")
         if "delta-v" in low and "hohmann" in low:
+            # Corpus-faithful wording (M3): spec 2.1's gate refuses any answer
+            # whose content vocabulary is absent from the retrieved passages,
+            # so the canned answer must itself be supportable. The old
+            # "LEO-to-GTO ... circularize at GEO" phrasing has been refused
+            # since the grounding fix at 11d10ad (verified: HEAD and M3 refuse
+            # it identically). Assertions below are unchanged.
             return _FakeMessage(
-                "A LEO-to-GTO Hohmann transfer needs about 2.4 km/s, plus ~1.5 km/s "
-                "to circularize at GEO."
+                "A Hohmann transfer between circular orbits requires about "
+                "2.4 km/s of delta-v for the spacecraft."
             )
         if "bee space" in low or "60,000" in low:
             return _FakeMessage(
