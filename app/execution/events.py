@@ -26,6 +26,7 @@ AGENT_COMPLETED = "agent.completed"
 AGENT_FAILED = "agent.failed"
 ROUTING_DECIDED = "routing.decided"          # supervisor's route choice
 QA_COMPLETED = "qa.completed"                # deterministic QA gate result
+EXECUTION_PLANNED = "execution.planned"          # real plan persisted (GUI-12)
 EXECUTION_COMPLETED = "execution.completed"
 EXECUTION_FAILED = "execution.failed"
 EXECUTION_CANCELLED = "execution.cancelled"

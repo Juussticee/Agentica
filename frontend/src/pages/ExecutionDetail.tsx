@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Execution, ExecutionEvent } from '../api/types'
 import { getExecution, getEvents } from '../api/client'
 import { Loading, ErrorCard, StatusBadge } from '../components/ui'
+import PlanSection from '../components/PlanSection'
 
 type ApiError = Error & { why?: string; recovery?: string }
 
@@ -104,6 +105,17 @@ export default function ExecutionDetail({ id }: { id: string }) {
               : exec.error.category
           }
         />
+      )}
+
+      {/* GUI-12: the real persisted plan. Null for simple routes and legacy
+          rows, so nothing renders there. While a run is still going, the
+          plan is only recorded when it finishes — say so honestly. */}
+      <PlanSection plan={exec.plan} />
+      {running && !exec.plan && (
+        <section className="card plan plan--pending" aria-label="Execution plan">
+          <h2>Plan (what the agent intended)</h2>
+          <p className="muted">The plan appears here once it has been recorded.</p>
+        </section>
       )}
 
       {exec.answer && (

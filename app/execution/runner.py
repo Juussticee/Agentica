@@ -25,6 +25,7 @@ from app.execution.events import (
     EXECUTION_COMPLETED,
     EXECUTION_CREATED,
     EXECUTION_FAILED,
+    EXECUTION_PLANNED,
     EXECUTION_STARTED,
     QA_COMPLETED,
     ROUTING_DECIDED,
@@ -40,6 +41,7 @@ from app.execution.store import (
     STATUS_QUEUED,
     STATUS_RUNNING,
     ExecutionStore,
+    serialize_plan,
 )
 
 _HUMAN_STEP_NAMES = {
@@ -191,6 +193,20 @@ class GraphRunner:
             agent_id="qa", step_id="qa",
             payload={"qa_flags": list(qa_flags)},
         )
+        # GUI-12: persist the REAL executed plan (planner data + Phase 8
+        # dispatcher task statuses) so the Control Center can visualize what
+        # the agent intended and what each task actually did. A failed run
+        # has no final state to read; the plan is simply not persisted there.
+        plan = final_state.get("plan")
+        if isinstance(plan, dict) and isinstance(plan.get("tasks"), list):
+            self.store.update_execution(eid, plan=plan)
+            n_tasks = len(plan.get("tasks") or [])
+            self._event(
+                eid, EXECUTION_PLANNED,
+                f"Execution plan recorded: {n_tasks} task(s)",
+                agent_id="planner", step_id="planner",
+                payload={"plan": serialize_plan(plan)},
+            )
         self.store.update_execution(
             eid,
             status=STATUS_COMPLETED,

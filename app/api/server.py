@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 
 from app import ai_settings
 from app.execution.runner import GraphRunner
-from app.execution.store import ExecutionStore
+from app.execution.store import ExecutionStore, serialize_plan
 from app.execution.store import DEFAULT_DB_PATH
 
 app = FastAPI(title="Agentica Control Center", version="0.1.0")
@@ -155,7 +155,11 @@ def get_execution(execution_id: str) -> Dict[str, Any]:
             "why": "No execution with that ID exists locally.",
             "recovery": "Check the execution list.",
         })
-    return stored
+    response = dict(stored)
+    # GUI-12: the detail response carries the serialized plan projection
+    # (nullable, backward-compatible: legacy rows get plan=null).
+    response["plan"] = serialize_plan(stored.get("plan"))
+    return response
 
 
 @app.get("/api/v1/executions/{execution_id}/events")
@@ -169,6 +173,26 @@ def get_events(execution_id: str, after: int = Query(default=0, ge=0)) -> Dict[s
     events = get_store().get_events(execution_id, after=after)
     return {"execution_id": execution_id, "after": after,
             "events": events, "count": len(events)}
+
+
+@app.get("/api/v1/executions/{execution_id}/plan")
+def get_execution_plan(execution_id: str) -> Dict[str, Any]:
+    """The REAL persisted plan for one execution (GUI-12, CONTROL_CENTER_PLAN
+    §19). Returns plan=null for executions without a plan — simple routes,
+    legacy rows, or corrupt blobs — never a fabricated sequence.
+    """
+    stored = get_store().get_execution(execution_id)
+    if stored is None:
+        raise HTTPException(status_code=404, detail={
+            "human_message": "Execution not found.",
+            "why": "No execution with that ID exists locally.",
+            "recovery": "Check the execution list.",
+        })
+    return {
+        "execution_id": execution_id,
+        "status": stored["status"],
+        "plan": serialize_plan(stored.get("plan")),
+    }
 
 
 # --- error guard for malformed requests --------------------------------------
