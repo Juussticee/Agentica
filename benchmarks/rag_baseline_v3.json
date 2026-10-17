@@ -1,0 +1,2996 @@
+{
+  "run_id": "books_eval_20261017-095829",
+  "timestamp_utc": "2026-10-17T06:58:29+00:00",
+  "git_head": "7a44a9a7f747a983d2ffeb2df767f7f4f265b5f2",
+  "config": {
+    "production_top_k": 3,
+    "score_floor": 0.35,
+    "score_semantics": "exp(-cosine_distance); floor is a deterministic proxy, not a calibrated probability",
+    "embedding_model": "nomic-embed-text",
+    "embedding_model_identity": {
+      "name": "nomic-embed-text:latest",
+      "digest": "0a109f422b47e3a30ba2b10eca18548e944e8a23073ee3f3e947efcf3c45e59f",
+      "size_bytes": 274302450,
+      "modified_at": "2026-09-26T09:43:55.2797362+03:00",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "nomic-bert",
+        "families": [
+          "nomic-bert"
+        ],
+        "parameter_size": "137M",
+        "quantization_level": "F16",
+        "context_length": 2048,
+        "embedding_length": 768,
+        "runner": "ggml"
+      },
+      "source": "http://localhost:11434/api/tags (local only)",
+      "measured_dimensions": [
+        768
+      ]
+    },
+    "ollama_base_url": "http://localhost:11434",
+    "ollama_unreachable_behavior": "abort with exit 2 before any indexing — no fallback embedding source, baseline not written",
+    "chunking": "production SentenceSplitter defaults (1024 tokens / 200 overlap, tiktoken cl100k_base)",
+    "ingest_caps": {
+      "max_file_mb": 50,
+      "max_pages": 500
+    },
+    "chat_model_calls": "none (RAG-1 is retrieval-only)",
+    "machine": {
+      "platform": "Windows-10-10.0.26100-SP0",
+      "python": "3.11.9",
+      "cpu_count": 12,
+      "packages": {
+        "chromadb": "1.5.9",
+        "llama-index-core": "0.14.25",
+        "llama-index-embeddings-ollama": "0.10.0",
+        "llama-index-vector-stores-chroma": "0.6.0",
+        "tiktoken": "0.14.0"
+      },
+      "note": "environment recorded for comparison; latency is machine-dependent and not a guarantee"
+    }
+  },
+  "metric_definitions": {
+    "version": "v2-page-metadata-aware",
+    "hit@k": "top-k contains min_docs_covered (default 1) distinct gold documents",
+    "precision@k": "covering nodes / k",
+    "reciprocal_rank": "1 / rank of first covering node",
+    "ndcg@5": "1/log2(1+first_hit_rank), binary relevance",
+    "note": "retrieval measurements on this gold set — NOT quality guarantees; latency and score distributions are measurements only"
+  },
+  "artifact_schema": {
+    "version": 3,
+    "evidence": "ordered-top5-per-case"
+  },
+  "sections": {
+    "real_corpus": {
+      "retrieval_metrics_on_answerable": {
+        "cases": 11,
+        "hit@1": 0.9091,
+        "hit@3": 1.0,
+        "hit@5": 1.0,
+        "precision@1": 1.0,
+        "precision@3": 0.3636,
+        "precision@5": 0.2182,
+        "reciprocal_rank": 1.0,
+        "ndcg@5": 1.0,
+        "coverage": 1.0
+      },
+      "unanswerable_cases": 4,
+      "score_stats": {
+        "top1_scores_answerable": [
+          0.669829,
+          0.700532,
+          0.722315,
+          0.734006,
+          0.740278,
+          0.757902,
+          0.757938,
+          0.760988,
+          0.769855,
+          0.770408,
+          0.796501
+        ],
+        "top1_scores_unanswerable": [
+          0.6509,
+          0.681883,
+          0.729732,
+          0.7859
+        ]
+      },
+      "abstention_proxy": {
+        "correct_on_unanswerable": "0/4",
+        "false_abstain_on_answerable": "0/11"
+      },
+      "per_case": [
+        {
+          "id": "R001",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.757938,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "139c5a92-8082-4ea8-82ba-ad8b76d5c8aa",
+              "score": 0.7579377893457968
+            },
+            {
+              "rank": 2,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.6398419048604619
+            },
+            {
+              "rank": 3,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.618012392319693
+            },
+            {
+              "rank": 4,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.6097929410199546
+            },
+            {
+              "rank": 5,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.6064836277263025
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "orbital_kinetics_principles.docx"
+            ],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "R002",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.740278,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "139c5a92-8082-4ea8-82ba-ad8b76d5c8aa",
+              "score": 0.7402782899823936
+            },
+            {
+              "rank": 2,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.6104450547454072
+            },
+            {
+              "rank": 3,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.6010429553558132
+            },
+            {
+              "rank": 4,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.5971506219408114
+            },
+            {
+              "rank": 5,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.5901656403988065
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "orbital_kinetics_principles.docx"
+            ],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "R003",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.757902,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "139c5a92-8082-4ea8-82ba-ad8b76d5c8aa",
+              "score": 0.7579015133939384
+            },
+            {
+              "rank": 2,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.62230982891759
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.6202195836828862
+            },
+            {
+              "rank": 4,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.6053749690261226
+            },
+            {
+              "rank": 5,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.5963678413812644
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "orbital_kinetics_principles.docx"
+            ],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "R004",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.722315,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "139c5a92-8082-4ea8-82ba-ad8b76d5c8aa",
+              "score": 0.72231503507864
+            },
+            {
+              "rank": 2,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.6203332336278397
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.6118147514219247
+            },
+            {
+              "rank": 4,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.5994827651662673
+            },
+            {
+              "rank": 5,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.5825511896289344
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "orbital_kinetics_principles.docx"
+            ],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "R005",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "number-with-comma"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.669829,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "139c5a92-8082-4ea8-82ba-ad8b76d5c8aa",
+              "score": 0.6698290052161086
+            },
+            {
+              "rank": 2,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.6326586687263416
+            },
+            {
+              "rank": 3,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.6305918816373608
+            },
+            {
+              "rank": 4,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.6100299661990717
+            },
+            {
+              "rank": 5,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.5858200644758674
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "orbital_kinetics_principles.docx"
+            ],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "R006",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.700532,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "139c5a92-8082-4ea8-82ba-ad8b76d5c8aa",
+              "score": 0.7005315296261149
+            },
+            {
+              "rank": 2,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.6046687286974114
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.5974546631152856
+            },
+            {
+              "rank": 4,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.5928912431021587
+            },
+            {
+              "rank": 5,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.5911164907123676
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "orbital_kinetics_principles.docx"
+            ],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "R007",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.796501,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.7965011352470837
+            },
+            {
+              "rank": 2,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.6228796087097483
+            },
+            {
+              "rank": 3,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.6215058482552115
+            },
+            {
+              "rank": 4,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.6136314578282612
+            },
+            {
+              "rank": 5,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.6118939264035144
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "urban_beekeeping_field_guide.pdf"
+            ],
+            "gold_pages": [
+              1
+            ],
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "R008",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.760988,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.7609881824483709
+            },
+            {
+              "rank": 2,
+              "file": "fixture_scan.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "a938adf1-33f1-4d04-9881-79442482ad92",
+              "score": 0.6246223849072436
+            },
+            {
+              "rank": 3,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.6177060630127058
+            },
+            {
+              "rank": 4,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.5964209854575803
+            },
+            {
+              "rank": 5,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.5896533747716646
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "urban_beekeeping_field_guide.pdf"
+            ],
+            "gold_pages": [
+              1
+            ],
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "R009",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.734006,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.7340058248555532
+            },
+            {
+              "rank": 2,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.6565944357029669
+            },
+            {
+              "rank": 3,
+              "file": "fixture_scan.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "a938adf1-33f1-4d04-9881-79442482ad92",
+              "score": 0.6345548178624876
+            },
+            {
+              "rank": 4,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.6073990382794576
+            },
+            {
+              "rank": 5,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.60694210101105
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "urban_beekeeping_field_guide.pdf"
+            ],
+            "gold_pages": [
+              1
+            ],
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "R010",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.769855,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.7698550801209016
+            },
+            {
+              "rank": 2,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.6132111323742307
+            },
+            {
+              "rank": 3,
+              "file": "fixture_scan.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "a938adf1-33f1-4d04-9881-79442482ad92",
+              "score": 0.6075353608968007
+            },
+            {
+              "rank": 4,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.5874554038803561
+            },
+            {
+              "rank": 5,
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "156ce731-988d-47b1-b160-742452af6161",
+              "score": 0.5820654472719092
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "urban_beekeeping_field_guide.pdf"
+            ],
+            "gold_pages": [
+              1
+            ],
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "R011",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "multi-doc"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.666667,
+            "hit@5": true,
+            "precision@5": 0.4,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.770408,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.7704075275498559
+            },
+            {
+              "rank": 2,
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "139c5a92-8082-4ea8-82ba-ad8b76d5c8aa",
+              "score": 0.7509694519333934
+            },
+            {
+              "rank": 3,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.6779684876977969
+            },
+            {
+              "rank": 4,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.6749619565355212
+            },
+            {
+              "rank": 5,
+              "file": "fixture_scan.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "a938adf1-33f1-4d04-9881-79442482ad92",
+              "score": 0.6726395709626162
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "orbital_kinetics_principles.docx",
+              "urban_beekeeping_field_guide.pdf"
+            ],
+            "gold_pages": [
+              1
+            ],
+            "min_docs_covered": 2
+          }
+        },
+        {
+          "id": "R012",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": false,
+          "labels": [
+            "unanswerable"
+          ],
+          "first_hit_rank": null,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 0.0,
+            "hit@3": false,
+            "precision@3": 0.0,
+            "hit@5": false,
+            "precision@5": 0.0,
+            "first_hit_rank": null,
+            "reciprocal_rank": 0.0,
+            "ndcg@5": 0.0,
+            "coverage": false
+          },
+          "abstention_proxy": {
+            "top1_score": 0.6509,
+            "proxy_abstain": false,
+            "correct": false
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.6509002369886961
+            },
+            {
+              "rank": 2,
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "156ce731-988d-47b1-b160-742452af6161",
+              "score": 0.5835827775132846
+            },
+            {
+              "rank": 3,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.5778056549215997
+            },
+            {
+              "rank": 4,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.5773832662415552
+            },
+            {
+              "rank": 5,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.5727860319788912
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "R013",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": false,
+          "labels": [
+            "unanswerable"
+          ],
+          "first_hit_rank": null,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 0.0,
+            "hit@3": false,
+            "precision@3": 0.0,
+            "hit@5": false,
+            "precision@5": 0.0,
+            "first_hit_rank": null,
+            "reciprocal_rank": 0.0,
+            "ndcg@5": 0.0,
+            "coverage": false
+          },
+          "abstention_proxy": {
+            "top1_score": 0.729732,
+            "proxy_abstain": false,
+            "correct": false
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.7297319382922582
+            },
+            {
+              "rank": 2,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.6641164131218775
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.6535716954853891
+            },
+            {
+              "rank": 4,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.65342671767519
+            },
+            {
+              "rank": 5,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.6376346962195897
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "R014",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": false,
+          "labels": [
+            "unanswerable"
+          ],
+          "first_hit_rank": null,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 0.0,
+            "hit@3": false,
+            "precision@3": 0.0,
+            "hit@5": false,
+            "precision@5": 0.0,
+            "first_hit_rank": null,
+            "reciprocal_rank": 0.0,
+            "ndcg@5": 0.0,
+            "coverage": false
+          },
+          "abstention_proxy": {
+            "top1_score": 0.681883,
+            "proxy_abstain": false,
+            "correct": false
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "139c5a92-8082-4ea8-82ba-ad8b76d5c8aa",
+              "score": 0.6818825474048571
+            },
+            {
+              "rank": 2,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.6048717460481385
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.5930093580443495
+            },
+            {
+              "rank": 4,
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "156ce731-988d-47b1-b160-742452af6161",
+              "score": 0.5852049649788478
+            },
+            {
+              "rank": 5,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.5841788314515493
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "R015",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": false,
+          "labels": [
+            "unanswerable",
+            "metadata-absent"
+          ],
+          "first_hit_rank": null,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 0.0,
+            "hit@3": false,
+            "precision@3": 0.0,
+            "hit@5": false,
+            "precision@5": 0.0,
+            "first_hit_rank": null,
+            "reciprocal_rank": 0.0,
+            "ndcg@5": 0.0,
+            "coverage": false
+          },
+          "abstention_proxy": {
+            "top1_score": 0.7859,
+            "proxy_abstain": false,
+            "correct": false
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.7858997125236399
+            },
+            {
+              "rank": 2,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.6576757156248417
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.6482468847398577
+            },
+            {
+              "rank": 4,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.6406859874490156
+            },
+            {
+              "rank": 5,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.6303709886216314
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        }
+      ]
+    },
+    "synthetic_fixtures": {
+      "retrieval_metrics_on_answerable": {
+        "cases": 14,
+        "hit@1": 0.8571,
+        "hit@3": 1.0,
+        "hit@5": 1.0,
+        "precision@1": 0.9286,
+        "precision@3": 0.3571,
+        "precision@5": 0.2143,
+        "reciprocal_rank": 0.9643,
+        "ndcg@5": 0.9736,
+        "coverage": 1.0
+      },
+      "unanswerable_cases": 3,
+      "score_stats": {
+        "top1_scores_answerable": [
+          0.661825,
+          0.702354,
+          0.712965,
+          0.72016,
+          0.723255,
+          0.733922,
+          0.738392,
+          0.741676,
+          0.765566,
+          0.769984,
+          0.772327,
+          0.772874,
+          0.775728,
+          0.830652
+        ],
+        "top1_scores_unanswerable": [
+          0.712682,
+          0.726903,
+          0.747266
+        ]
+      },
+      "abstention_proxy": {
+        "correct_on_unanswerable": "0/3",
+        "false_abstain_on_answerable": "0/14"
+      },
+      "per_case": [
+        {
+          "id": "S001",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "headings-context"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.775728,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.7757279060043284
+            },
+            {
+              "rank": 2,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.7279738436630105
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.6952537291246131
+            },
+            {
+              "rank": 4,
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "139c5a92-8082-4ea8-82ba-ad8b76d5c8aa",
+              "score": 0.6313671222277666
+            },
+            {
+              "rank": 5,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.6289338824536563
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "fixture_headings.docx"
+            ],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "S002",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "headings-context"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.723255,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.7232546388289852
+            },
+            {
+              "rank": 2,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.6896860871171752
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.6600366002985701
+            },
+            {
+              "rank": 4,
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "139c5a92-8082-4ea8-82ba-ad8b76d5c8aa",
+              "score": 0.6029772050821778
+            },
+            {
+              "rank": 5,
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "156ce731-988d-47b1-b160-742452af6161",
+              "score": 0.581982534985601
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "fixture_headings.docx"
+            ],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "S003",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "subsection-context"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.661825,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.6618253878619622
+            },
+            {
+              "rank": 2,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.6554284734590167
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.6547485209528221
+            },
+            {
+              "rank": 4,
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "156ce731-988d-47b1-b160-742452af6161",
+              "score": 0.5899407288240909
+            },
+            {
+              "rank": 5,
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "139c5a92-8082-4ea8-82ba-ad8b76d5c8aa",
+              "score": 0.5734083110356553
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "fixture_headings.docx"
+            ],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "S004",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "table"
+          ],
+          "first_hit_rank": 2,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 0.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 2,
+            "reciprocal_rank": 0.5,
+            "ndcg@5": 0.63093,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.741676,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.7416756913770336
+            },
+            {
+              "rank": 2,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.7258611884326436
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.680681335243946
+            },
+            {
+              "rank": 4,
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "139c5a92-8082-4ea8-82ba-ad8b76d5c8aa",
+              "score": 0.6229355608849876
+            },
+            {
+              "rank": 5,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.6176000358400224
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "fixture_headings.docx"
+            ],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "S005",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "multi-column"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.772327,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.7723274376654555
+            },
+            {
+              "rank": 2,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.7054648362848368
+            },
+            {
+              "rank": 3,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.6839398825093492
+            },
+            {
+              "rank": 4,
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "156ce731-988d-47b1-b160-742452af6161",
+              "score": 0.6086736978695668
+            },
+            {
+              "rank": 5,
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "139c5a92-8082-4ea8-82ba-ad8b76d5c8aa",
+              "score": 0.6063145812889547
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "fixture_columns.pdf"
+            ],
+            "gold_pages": [
+              1
+            ],
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "S006",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "multi-column"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.72016,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.7201595635586997
+            },
+            {
+              "rank": 2,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.6618354471445309
+            },
+            {
+              "rank": 3,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.6390214824048608
+            },
+            {
+              "rank": 4,
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "156ce731-988d-47b1-b160-742452af6161",
+              "score": 0.604834648478447
+            },
+            {
+              "rank": 5,
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "139c5a92-8082-4ea8-82ba-ad8b76d5c8aa",
+              "score": 0.6022959475904941
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "fixture_columns.pdf"
+            ],
+            "gold_pages": [
+              1
+            ],
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "S007",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "multi-column"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.772874,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.7728737357150267
+            },
+            {
+              "rank": 2,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.7561701052522377
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.7175796901293375
+            },
+            {
+              "rank": 4,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.6847887083692616
+            },
+            {
+              "rank": 5,
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "156ce731-988d-47b1-b160-742452af6161",
+              "score": 0.6641597990664836
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "fixture_columns.pdf"
+            ],
+            "gold_pages": [
+              1
+            ],
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "S008",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "table"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.738392,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.7383923205877965
+            },
+            {
+              "rank": 2,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.6290314321824707
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.6275518189585776
+            },
+            {
+              "rank": 4,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.6240999632104571
+            },
+            {
+              "rank": 5,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.6135397338693206
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "fixture_table.pdf"
+            ],
+            "gold_pages": [
+              1
+            ],
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "S009",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "figure-caption"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.830652,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.830652026912551
+            },
+            {
+              "rank": 2,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.7099019906633247
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.700370624596382
+            },
+            {
+              "rank": 4,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.6898544880654577
+            },
+            {
+              "rank": 5,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.6824665987140179
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "fixture_table.pdf"
+            ],
+            "gold_pages": [
+              1
+            ],
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "S010",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "partial-document"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.769984,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_scan.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "a938adf1-33f1-4d04-9881-79442482ad92",
+              "score": 0.7699844462688573
+            },
+            {
+              "rank": 2,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.6742830402420502
+            },
+            {
+              "rank": 3,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.6740454764499348
+            },
+            {
+              "rank": 4,
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "156ce731-988d-47b1-b160-742452af6161",
+              "score": 0.6629672040092323
+            },
+            {
+              "rank": 5,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.646420893110486
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "fixture_scan.pdf"
+            ],
+            "gold_pages": [
+              2
+            ],
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "S011",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "adversarial-host-document"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.702354,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "156ce731-988d-47b1-b160-742452af6161",
+              "score": 0.7023536168899192
+            },
+            {
+              "rank": 2,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.6728099854278076
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.6655442517651202
+            },
+            {
+              "rank": 4,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.6475637680501218
+            },
+            {
+              "rank": 5,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.6285555611770378
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "fixture_adversarial.docx"
+            ],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "S012",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "adversarial-host-document"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.733922,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "156ce731-988d-47b1-b160-742452af6161",
+              "score": 0.733922048087297
+            },
+            {
+              "rank": 2,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.7199828636120903
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.7076398861251397
+            },
+            {
+              "rank": 4,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.687905965178301
+            },
+            {
+              "rank": 5,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.648826412403351
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "fixture_adversarial.docx"
+            ],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "S013",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": false,
+          "labels": [
+            "unanswerable",
+            "ocr-gap"
+          ],
+          "first_hit_rank": null,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 0.0,
+            "hit@3": false,
+            "precision@3": 0.0,
+            "hit@5": false,
+            "precision@5": 0.0,
+            "first_hit_rank": null,
+            "reciprocal_rank": 0.0,
+            "ndcg@5": 0.0,
+            "coverage": false
+          },
+          "abstention_proxy": {
+            "top1_score": 0.747266,
+            "proxy_abstain": false,
+            "correct": false
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_scan.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "a938adf1-33f1-4d04-9881-79442482ad92",
+              "score": 0.7472662920460864
+            },
+            {
+              "rank": 2,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.6843005935764014
+            },
+            {
+              "rank": 3,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.6789227150389922
+            },
+            {
+              "rank": 4,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.6643543185211137
+            },
+            {
+              "rank": 5,
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "156ce731-988d-47b1-b160-742452af6161",
+              "score": 0.6527691126143499
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "S014",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": false,
+          "labels": [
+            "unanswerable",
+            "adversarial-fake-citation"
+          ],
+          "first_hit_rank": null,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 0.0,
+            "hit@3": false,
+            "precision@3": 0.0,
+            "hit@5": false,
+            "precision@5": 0.0,
+            "first_hit_rank": null,
+            "reciprocal_rank": 0.0,
+            "ndcg@5": 0.0,
+            "coverage": false
+          },
+          "abstention_proxy": {
+            "top1_score": 0.712682,
+            "proxy_abstain": false,
+            "correct": false
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "156ce731-988d-47b1-b160-742452af6161",
+              "score": 0.7126820827021959
+            },
+            {
+              "rank": 2,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.7104173439597286
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.6997223691529126
+            },
+            {
+              "rank": 4,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.6815072685736624
+            },
+            {
+              "rank": 5,
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "a0506878-0f96-4a14-b82e-f80722152a2c",
+              "score": 0.6503501774681146
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "S015",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": false,
+          "labels": [
+            "unanswerable"
+          ],
+          "first_hit_rank": null,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 0.0,
+            "hit@3": false,
+            "precision@3": 0.0,
+            "hit@5": false,
+            "precision@5": 0.0,
+            "first_hit_rank": null,
+            "reciprocal_rank": 0.0,
+            "ndcg@5": 0.0,
+            "coverage": false
+          },
+          "abstention_proxy": {
+            "top1_score": 0.726903,
+            "proxy_abstain": false,
+            "correct": false
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.7269030571435217
+            },
+            {
+              "rank": 2,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.6845082334159299
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.6795369977607927
+            },
+            {
+              "rank": 4,
+              "file": "fixture_scan.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "a938adf1-33f1-4d04-9881-79442482ad92",
+              "score": 0.6319934855454004
+            },
+            {
+              "rank": 5,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.6316408068041663
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [],
+            "gold_pages": null,
+            "min_docs_covered": 1
+          }
+        },
+        {
+          "id": "S016",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "multi-doc",
+            "synthetic-cross-fixture"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.666667,
+            "hit@5": true,
+            "precision@5": 0.4,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.765566,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.7655658154812823
+            },
+            {
+              "rank": 2,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.7605921250183038
+            },
+            {
+              "rank": 3,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.7187540747250201
+            },
+            {
+              "rank": 4,
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "156ce731-988d-47b1-b160-742452af6161",
+              "score": 0.6868360616245799
+            },
+            {
+              "rank": 5,
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "5cdd893d-7f9b-4263-98fb-f0a3c5f91a3c",
+              "score": 0.6429589798711338
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "fixture_headings.docx",
+              "fixture_columns.pdf"
+            ],
+            "gold_pages": [
+              1
+            ],
+            "min_docs_covered": 2
+          }
+        },
+        {
+          "id": "S017",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "multi-column",
+            "second-page"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.712965,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top5": [
+            {
+              "rank": 1,
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "77ca3000-ecc5-48ec-b9be-4d61a8d90666",
+              "score": 0.7129654325486191
+            },
+            {
+              "rank": 2,
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "page_number": null,
+              "node_id": "037789a6-af33-437a-89c0-cc9e91f9b0ae",
+              "score": 0.6572470016469912
+            },
+            {
+              "rank": 3,
+              "file": "fixture_headings.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "04812f77-6803-4984-9d78-4ad0aa10e12e",
+              "score": 0.6024399941526664
+            },
+            {
+              "rank": 4,
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "page_number": null,
+              "node_id": "156ce731-988d-47b1-b160-742452af6161",
+              "score": 0.5865779868566324
+            },
+            {
+              "rank": 5,
+              "file": "fixture_scan.pdf",
+              "page": "2",
+              "page_number": null,
+              "node_id": "a938adf1-33f1-4d04-9881-79442482ad92",
+              "score": 0.5734241355748025
+            }
+          ],
+          "gold_ref": {
+            "gold_documents": [
+              "fixture_columns.pdf"
+            ],
+            "gold_pages": [
+              2
+            ],
+            "min_docs_covered": 1
+          }
+        }
+      ]
+    }
+  },
+  "abstention_proxy": {},
+  "latency_ms": {
+    "retrieval_per_query": {
+      "p50": 72.925,
+      "p90": 82.808,
+      "max": 90.342
+    },
+    "embed_call_per_query": {
+      "calls": 32,
+      "dimensions_observed": [
+        768
+      ],
+      "p50": 62.045,
+      "p90": 71.277,
+      "max": 3792.624,
+      "per_query": [
+        {
+          "query": "What is the orbital speed of a spacecraft in low Earth orbit at 400 km altitude?",
+          "ms": 3792.624,
+          "dimensions": 768
+        },
+        {
+          "query": "How long does one revolution take for a low Earth orbit spacecraft at 400 km altitude?",
+          "ms": 68.548,
+          "dimensions": 768
+        },
+        {
+          "query": "How much delta-v does a Hohmann transfer from low Earth orbit to geostationary transfer orbit require?",
+          "ms": 70.066,
+          "dimensions": 768
+        },
+        {
+          "query": "How much additional delta-v is needed to circularize at geostationary altitude after a transfer?",
+          "ms": 71.022,
+          "dimensions": 768
+        },
+        {
+          "query": "At what altitude does geostationary orbit lie above the equator?",
+          "ms": 69.769,
+          "dimensions": 768
+        },
+        {
+          "query": "In what year was the Tsiolkovsky rocket equation first derived?",
+          "ms": 61.068,
+          "dimensions": 768
+        },
+        {
+          "query": "How many worker bees can a healthy hive contain in midsummer?",
+          "ms": 53.859,
+          "dimensions": 768
+        },
+        {
+          "query": "What is the width of the bee space that bees keep free of comb and propolis?",
+          "ms": 63.543,
+          "dimensions": 768
+        },
+        {
+          "query": "Below what moisture content is honey harvested to prevent fermentation during storage?",
+          "ms": 68.43,
+          "dimensions": 768
+        },
+        {
+          "query": "What do bees collect from plant buds to seal small gaps and sterilize the hive interior?",
+          "ms": 64.819,
+          "dimensions": 768
+        },
+        {
+          "query": "Which document explains the Tsiolkovsky rocket equation, and which document explains bee space in hive construction?",
+          "ms": 76.015,
+          "dimensions": 768
+        },
+        {
+          "query": "What is the recommended treatment for varroa mite infestation?",
+          "ms": 61.178,
+          "dimensions": 768
+        },
+        {
+          "query": "What technique does the field guide describe for rearing queens in winter?",
+          "ms": 60.161,
+          "dimensions": 768
+        },
+        {
+          "query": "What thrust-to-weight ratio is required at liftoff for a launch vehicle?",
+          "ms": 62.909,
+          "dimensions": 768
+        },
+        {
+          "query": "Who is the author of the urban beekeeping field guide?",
+          "ms": 52.545,
+          "dimensions": 768
+        },
+        {
+          "query": "What is the spring tide tidal range at Port Meridian in the almanac?",
+          "ms": 55.448,
+          "dimensions": 768
+        },
+        {
+          "query": "How far does the neap tide at Port Meridian fall, according to the almanac?",
+          "ms": 64.866,
+          "dimensions": 768
+        },
+        {
+          "query": "How often must the tide gauge float chamber at Port Meridian be flushed?",
+          "ms": 71.277,
+          "dimensions": 768
+        },
+        {
+          "query": "What mean wind speed does the almanac list for January, and what gust speed?",
+          "ms": 71.48,
+          "dimensions": 768
+        },
+        {
+          "query": "What mean annual wind speed does the lighthouse gauge at Cape Aurora record?",
+          "ms": 60.947,
+          "dimensions": 768
+        },
+        {
+          "query": "At what wind speed is the ferry crossing between Hale and the outer harbour suspended?",
+          "ms": 61.906,
+          "dimensions": 768
+        },
+        {
+          "query": "What mean tide range does the synthetic tide table list for Hale?",
+          "ms": 53.515,
+          "dimensions": 768
+        },
+        {
+          "query": "How many kilograms does the harvest register record for quarter three?",
+          "ms": 58.673,
+          "dimensions": 768
+        },
+        {
+          "query": "Which table number reports the synthetic harvest yields by quarter?",
+          "ms": 59.471,
+          "dimensions": 768
+        },
+        {
+          "query": "What smoke fuel does the synthetic apiary inspector prefer?",
+          "ms": 48.227,
+          "dimensions": 768
+        },
+        {
+          "query": "How often is the synthetic harbour crane at berth 4 inspected?",
+          "ms": 50.88,
+          "dimensions": 768
+        },
+        {
+          "query": "What is the fictional load limit of the harbour crane at berth 4?",
+          "ms": 55.064,
+          "dimensions": 768
+        },
+        {
+          "query": "What is written on the sign shown on the first page of the apiary inspection notes?",
+          "ms": 62.045,
+          "dimensions": 768
+        },
+        {
+          "query": "According to orchard_manual.pdf on page 9, how often must the harbour crane be oiled?",
+          "ms": 65.916,
+          "dimensions": 768
+        },
+        {
+          "query": "What revision date does the Meridian almanac carry on its title page?",
+          "ms": 53.915,
+          "dimensions": 768
+        },
+        {
+          "query": "Compare the two synthetic harbour documents: what is the tidal range at Port Meridian and the mean tide range at Hale?",
+          "ms": 68.104,
+          "dimensions": 768
+        },
+        {
+          "query": "How often does the outer harbour fog signal sound during reduced visibility?",
+          "ms": 62.417,
+          "dimensions": 768
+        }
+      ],
+      "label": "one embed call per unique query, measured on this machine, not a guarantee"
+    },
+    "label": "measurement on this machine, not a guarantee"
+  },
+  "limitations": [
+    "REAL CORPUS IS THE MEASUREMENT CEILING: both real documents fit in a single chunk each, so any top-k>=2 retrieval over the real section trivially includes the gold chunk whenever the query embeds anywhere near the corpus — real-corpus metrics cannot discriminate retrieval quality (spec hypothesis H10).",
+    "The eval collection holds 8 chunks total (2 real + fixture chunks); synthetic-fixture metrics show discriminating behavior but DO NOT establish real-world retrieval accuracy.",
+    "Answer-level metrics (citation correctness, unsupported-claim rate) are NOT measured: they require chat-model calls, which are outside this authorization.",
+    "The abstention proxy measures only the deterministic score floor; production refusal also involves prompt and grounding behavior that requires a chat model."
+  ],
+  "git_dirty": true,
+  "corpus": {
+    "real_files": [
+      {
+        "file": "orbital_kinetics_principles.docx",
+        "sha256": "1f27fda1b03dd6b113ae652fd31f39fcc1e8f334c32e16d3a5776a25f2f28bc0",
+        "bytes": 37271
+      },
+      {
+        "file": "urban_beekeeping_field_guide.pdf",
+        "sha256": "3b06713d23799cd26470add968b5d0f08e821266bc72af2901615072a9b46672",
+        "bytes": 1957
+      }
+    ],
+    "fixture_files": [
+      {
+        "file": "fixture_headings.docx",
+        "sha256": "3f60da7451770548e8947d199b06021b6183e7ee6ff9985c4f4ed61ce15c6834",
+        "bytes": 37381
+      },
+      {
+        "file": "fixture_columns.pdf",
+        "sha256": "9a3ed816bb680e5b075c6fb8338ac0d249a1af338d9c91168a3b85beb253d44b",
+        "bytes": 2652
+      },
+      {
+        "file": "fixture_table.pdf",
+        "sha256": "aae1b17e0240927e38782746a65768ca1e350d4683c4d93266fd93b43b2c8277",
+        "bytes": 1705
+      },
+      {
+        "file": "fixture_scan.pdf",
+        "sha256": "21be3de2cefbfddf6ff204be475d78698c3ee330e3388afee667e01f58936b54",
+        "bytes": 9544
+      },
+      {
+        "file": "fixture_adversarial.docx",
+        "sha256": "e703583c7b16d7e72e620a4adbb958d046e02c3fac5f7afc42140208cba2154a",
+        "bytes": 37283
+      }
+    ]
+  },
+  "gold": {
+    "path": "benchmarks\\rag_gold_v1.json",
+    "sha256": "16e25677f2effbd65bba0475754f7b9f5c85344d468497dd322234b155bbb25d",
+    "cases": 32,
+    "real_cases": 15,
+    "synthetic_cases": 17,
+    "gap_list": [
+      "No real multi-column documents in the corpus (only the synthetic columns fixture).",
+      "No real scanned/image-only pages in the corpus (only the synthetic scan fixture).",
+      "No real tables in the corpus (only the synthetic table fixtures).",
+      "No real multi-page tables, figures, charts, or captions in the corpus.",
+      "No Arabic-language cases (Q4=A: English-only initial baseline).",
+      "No genuine real-corpus cross-document questions beyond the single crafted comparison R011.",
+      "No footnotes/references sections in the corpus.",
+      "No documents larger than one 1024-token chunk: every corpus file and fixture fits in a single chunk under current chunking, so chunk-boundary behavior is NOT exercised by this gold set.",
+      "Answer-level metrics (citation correctness, unsupported-claim rate) are out of RAG-1 scope: they require chat-model calls, which are not authorized."
+    ],
+    "review_notes": [],
+    "sha256_after": "16e25677f2effbd65bba0475754f7b9f5c85344d468497dd322234b155bbb25d"
+  },
+  "ingest": {
+    "seconds": 13.057,
+    "collection": "books_eval_20261017-095829",
+    "temp_dir_used": true,
+    "chunks_in_eval_collection": 8,
+    "per_file": {
+      "orbital_kinetics_principles.docx": {
+        "status": "indexed",
+        "chunks": 1,
+        "documents": 1,
+        "nonempty_pages": 1,
+        "empty_pages": [],
+        "category": null,
+        "_ingest_seconds": 5.308
+      },
+      "urban_beekeeping_field_guide.pdf": {
+        "status": "indexed",
+        "chunks": 1,
+        "documents": 1,
+        "nonempty_pages": 1,
+        "empty_pages": [],
+        "category": null,
+        "_ingest_seconds": 0.502
+      },
+      "fixture_headings.docx": {
+        "status": "indexed",
+        "chunks": 1,
+        "documents": 1,
+        "nonempty_pages": 1,
+        "empty_pages": [],
+        "category": null,
+        "_ingest_seconds": 0.482
+      },
+      "fixture_columns.pdf": {
+        "status": "indexed",
+        "chunks": 2,
+        "documents": 2,
+        "nonempty_pages": 2,
+        "empty_pages": [],
+        "category": null,
+        "_ingest_seconds": 0.548
+      },
+      "fixture_table.pdf": {
+        "status": "indexed",
+        "chunks": 1,
+        "documents": 1,
+        "nonempty_pages": 1,
+        "empty_pages": [],
+        "category": null,
+        "_ingest_seconds": 0.216
+      },
+      "fixture_scan.pdf": {
+        "status": "partial",
+        "chunks": 1,
+        "documents": 2,
+        "nonempty_pages": 1,
+        "empty_pages": [
+          "page 1"
+        ],
+        "category": "partial_extractable_text",
+        "_ingest_seconds": 0.231
+      },
+      "fixture_adversarial.docx": {
+        "status": "indexed",
+        "chunks": 1,
+        "documents": 1,
+        "nonempty_pages": 1,
+        "empty_pages": [],
+        "category": null,
+        "_ingest_seconds": 0.473
+      }
+    }
+  },
+  "fidelity_check_production_top3_equals_top5_prefix": true,
+  "failures_and_timeouts": {
+    "ingest_failed_files": [],
+    "ingest_partial_files": [
+      "fixture_scan.pdf"
+    ],
+    "embed_call_failures": 0,
+    "retrieval_errors": 0,
+    "retrieval_timeouts": 0,
+    "note": "a written baseline implies zero failures on this run: an embed/Ollama failure aborts BEFORE indexing with exit 2 and no baseline; an ingest failure aborts with exit 1; a retrieval error raises out and no baseline is written. Counts are of THIS run, not of the pipeline under all conditions."
+  },
+  "guards": {
+    "real_store_before": {
+      "C:\\Users\\hashe\\Documents\\Agentic_System\\storage\\chroma.sqlite3": {
+        "size": 245760,
+        "mtime_ns": 1792217636451168800,
+        "sha256": "cb0e25647c81a9e03293513abde75d9df2f2ac26e3a4a459a2d61f2444d6fd7f"
+      },
+      "C:\\Users\\hashe\\Documents\\Agentic_System\\storage\\.index_manifest.json": {
+        "size": 1055,
+        "mtime_ns": 1791887807927841200,
+        "sha256": "d2aa0135fbffc754210cff13228e58d2b8ce01e2f4fdc9d14120de663294c4ef"
+      }
+    },
+    "real_store_after": {
+      "C:\\Users\\hashe\\Documents\\Agentic_System\\storage\\chroma.sqlite3": {
+        "size": 245760,
+        "mtime_ns": 1792217636451168800,
+        "sha256": "cb0e25647c81a9e03293513abde75d9df2f2ac26e3a4a459a2d61f2444d6fd7f"
+      },
+      "C:\\Users\\hashe\\Documents\\Agentic_System\\storage\\.index_manifest.json": {
+        "size": 1055,
+        "mtime_ns": 1791887807927841200,
+        "sha256": "d2aa0135fbffc754210cff13228e58d2b8ce01e2f4fdc9d14120de663294c4ef"
+      }
+    },
+    "real_store_unchanged": true,
+    "gold_unchanged": true,
+    "chroma_client_paths_constructed": [
+      "C:\\Users\\hashe\\AppData\\Local\\Temp\\rag_eval_zp4x0v04",
+      "C:\\Users\\hashe\\AppData\\Local\\Temp\\rag_eval_zp4x0v04",
+      "C:\\Users\\hashe\\AppData\\Local\\Temp\\rag_eval_zp4x0v04"
+    ],
+    "all_chroma_clients_on_temp_paths": true,
+    "production_query_engine_cache_used": false
+  }
+}

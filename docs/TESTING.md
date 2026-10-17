@@ -76,12 +76,68 @@ exits 1 when any file failed.
 | `python scripts\eval_verifier_local.py` | OPTIONAL M4B-H local-model experiment (installed `qwen3:0.6b` via Ollama; no downloads, no paid quota; never in the regression suite): all benchmark cases in the JSON (38 since M4C) through the real bounded verifier path at the PRODUCTION 10 s claim timeout (deliberately not loosened), recording expected vs actual verdict, parse failures, false accepts/rejects, per-claim latency (cold vs warm), timeout count, total elapsed, live verifier-thread accounting after the run, and a post-run probe. Results vary run to run: recorded runs had 17 and 26 of 31 calls exceed the 10 s bound with 0 parse failures and 0 false accepts among completed calls in both — small samples, not statistically conclusive; latency (not verdict quality) is the binding constraint. Exits 2 with a clear message when the local runtime is down — never substitutes a paid model | local Ollama | 0 | per-case table + summary |
 | `python scripts\check_dependencies.py` | every required package imports | no | 0 | `ALL_DEPENDENCIES_OK` |
 | `python scripts\check_chroma.py` | persisted collection: non-empty, prose sample, and manifest/store integrity (per-file chunk counts via `file_path` metadata, indexed-with-zero-chunks, failed/partial records, legacy entries, entries whose file is gone, stored vectors with no manifest entry). Read-only; labels a check UNAVAILABLE when the index lacks the metadata for it | no | 0 | counts by status + per-file ok/partial/failed/legacy lines; exit 0 clean, 1 on integrity error |
+| `env\Scripts\python.exe -m pytest scripts/test_rag_eval_harness.py -q` | RAG-1 retrieval-evaluation harness (38, offline: `MockEmbedding`, no Ollama/LLM/network): the deterministic fixture generator rebuilds every fixture byte-identically from `scripts/make_rag_fixtures.py`, guard unit tests (size+mtime+sha256 change detected / unchanged passes), gold-set schema + provenance validation against the fixture and corpus sources with a read-only hash guard, metrics semantics (hit@k, precision@k, MRR, nDCG@5 binary relevance, abstention-proxy polarity), the ISOLATION PROOF (every Chroma client constructed during evaluation lands on the temp path and never on `storage/`; the production books_agent seam restores `STORAGE_DIR`/`CHROMA_COLLECTION`/`_query_engine`/`Settings._llm`/`Settings._embed_model` by identity — including on failure — and the temp directory is provably removable after client release, so no SQLite/hnsw handle leaked), artifact-schema-3 evidence validation with an independent full recalculation of every metric from the in-artifact `retrieved_top5` + `gold_ref`, overwrite-safety tests (an existing `--out` report ⇒ refusal exit 3 **before** any guard/gold/Ollama work and no write; `--force` is the only opt-in; the documented bare run can no longer clobber the pinned v1), SHA-256 pins for `rag_gold_v1.json` and baselines v1/v2/v3 asserted unchanged, plus the real-store stat+sha256 guard asserted unchanged across the test. The frozen baseline is produced by `python scripts\eval_retrieval.py` (local Ollama `nomic-embed-text` embeds via localhost:11434, retrieval-only, no chat-model calls; **refuses with exit 3 and writes nothing when the `--out` file already exists** unless `--force` is passed, and stops without writing if `storage/` or the gold set changes). Frozen reference artifact: `benchmarks/rag_baseline_v3.json`, sha256 `aa89c37bc23b0dc748255df9410a28ba43a6f8d8043070ad54cafd6e175de1cd`, `artifact_schema.version=3` (`ordered-top5-per-case`), `metric_definitions.version=v2-page-metadata-aware` — recorded metrics: see "RAG-1 frozen baseline (v3)" below | no (suite); local Ollama embeds for a baseline run | 0 | pytest: 38 passed |
 | `env\Scripts\python.exe -m pytest scripts/test_ingest_integrity.py -q` | M2 ingestion integrity (27): unsupported files reported as ignored, healthy PDF/DOCX indexed with store-verified chunk counts, corrupt PDF and "reader returned no documents" failed (never indexed), zero-text PDF reported as no-extractable-text (not "blank"), mixed PDF partial with the unextractable page named and the readable page still usable, oversized and page-limit rejects before the reader is called, encrypted PDF explicit failure, idempotent re-run (no duplicate chunks, no manifest drift), failed files retried, failed replacement keeps the previous vectors, changed file replaces its own stale chunks, legacy v1 manifest migrated and store-verified (or repaired when its vectors are missing), corrupt manifest tolerated, files missing from disk reported not pruned, and the check_chroma diagnostic's own exit codes. Temp dirs + `MockEmbedding`: no Ollama, no Gemini, no network, no quota, real knowledge base untouched | no | 0 | pytest: 27 passed |
 | `python scripts\verify_graph.py` | **LIVE** smoke test: real graph, 3 scenarios | SearXNG + web | **~3 calls** | three scenario blocks; refusal on out-of-corpus |
 | `python scripts\test_phase1_e2e.py` | **LIVE** spec steps 3 & 5 end to end | SearXNG + web | **~2 calls** | `STEPS_3_5_REAL_OK` |
 | `python scripts\check_books_agent.py` | one real books answer with provenance | Ollama embeds | **1 call** | answer + `SOURCES: ['books']` |
 | `python scripts\probe_books_prompt.py` | captures the exact prompt sent to the LLM by the query engine | Ollama embeds | **1 call** | answer + captured prompts |
 | `python scripts\demo_rewrite_quality.py` | before/after search-quality demo of the rewrite step | SearXNG + web | **1 fast call** | raw vs rewritten result lists |
+
+### RAG-1 frozen baseline (v3) — recorded metrics
+
+**Frozen reference artifact** (retrieval-only; the comparison point for
+every later retrieval change):
+
+| Field | Value |
+|---|---|
+| File | `benchmarks/rag_baseline_v3.json` (95,700 bytes) |
+| SHA-256 | `aa89c37bc23b0dc748255df9410a28ba43a6f8d8043070ad54cafd6e175de1cd` |
+| Run | `books_eval_20261017-095829` (2026-10-17T06:58:29Z), git `7a44a9a7f747`, `git_dirty: true` (evaluated code was uncommitted — recorded deliberately) |
+| Schema | `artifact_schema.version = 3`, evidence `ordered-top5-per-case` — every metric recomputable from the in-artifact `retrieved_top5` + `gold_ref` |
+| Metric definitions | `v2-page-metadata-aware` (page filter skipped for nodes without page metadata; `docs/RAG_BASELINE_AUDIT.md` §1.5 and §7) |
+| Guards in artifact | real store unchanged · gold unchanged · all Chroma clients on temp paths · production query-engine cache unused · fidelity check true · 8 eval chunks · 32 cases (25 answerable, 7 unanswerable) |
+
+**Retrieval metrics — macro averages over answerable cases only:**
+
+| Section | Denominator | hit@1 | hit@3 | hit@5 | precision@1 | precision@3 | coverage | MRR | nDCG@5 |
+|---|---|---|---|---|---|---|---|---|---|
+| real corpus | 11 answerable (4 unanswerable excluded) | 0.9091 (10/11) | 1.0 (11/11) | 1.0 (11/11) | 1.0 (11/11) | 0.3636 (12 covering nodes / 33 slots) | 1.0 (11/11) | 1.0 | 1.0 |
+| synthetic fixtures | 14 answerable (3 unanswerable excluded) | 0.8571 (12/14) | 1.0 (14/14) | 1.0 (14/14) | 0.9286 (13/14) | 0.3571 (15 covering nodes / 42 slots) | 1.0 (14/14) | 0.9643 ((13×1 + 0.5)/14) | 0.9736 ((13×1 + 0.6309)/14) |
+
+Caveats that must travel with these numbers:
+
+1. **Definitional split, not an arithmetic error:** `hit@k` / `coverage`
+   count *distinct gold documents* against `min_docs_covered`, while MRR /
+   nDCG@5 use the *first covering node*. On the two multi-doc cases
+   (R011, S016) `hit@1` is structurally false (one slot cannot hold two
+   documents) while MRR/nDCG stay 1.0 — that is why hit@1 = 0.9091 next to
+   MRR = 1.0.
+2. **Not comparable to v1:** v3 uses the revised page-metadata-aware
+   relevance rule; v1 (`2c1d4ae9…`) used the older rule. Only R011 and
+   S016 differ (real hit@3/coverage 0.9091 → 1.0, precision@3 0.3333 →
+   0.3636; synthetic hit@3/coverage 0.9286 → 1.0, precision@3 0.3333 →
+   0.3571); every other value is identical across v1/v2/v3. Cross-version
+   comparison is valid only for hit@1, MRR, nDCG@5 and precision@1 — full
+   lineage in `docs/RAG_BASELINE_AUDIT.md` §7.
+3. **The abstention proxy does NOT measure answer-level refusal.** The
+   recorded `0/4` and `0/3` "correct on unanswerable" (and `0/11` / `0/14`
+   false-abstains) only prove the 0.35 `BOOKS_MIN_SCORE` floor is
+   unreachable — all top-1 scores lie in [0.65, 0.83]. Production refusal
+   also depends on the synthesis prompt and the deterministic grounding
+   gate (chat-model behavior); that path is measured by **RAG-AE
+   (answer-quality evaluation — not started)**, never by this baseline.
+4. **The real corpus cannot discriminate:** both real documents fit in a
+   single chunk each (8-chunk eval collection), so real-section numbers
+   are a ceiling, not a quality signal; synthetic-fixture metrics do not
+   establish real-world retrieval accuracy.
+5. Latency (retrieval p50 72.9 ms / p90 82.8 ms / max 90.3 ms; embed p50
+   62.0 ms; ingest 13.1 s) is a machine-local measurement, not a guarantee.
+
+Regeneration: `python scripts\eval_retrieval.py --out <new path>` — an
+existing file is refused with exit 3 unless `--force` is passed. The gold
+set and all three baselines are SHA-256-pinned by the harness suite and
+must never be rewritten.
 
 ### M4C — what the tests prove (deterministic vs scripted vs live)
 

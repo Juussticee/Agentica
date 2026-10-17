@@ -354,6 +354,19 @@ Each RAG step states problem, scope, dependencies, tests, acceptance,
 and why it must NOT come earlier. Steps are delivered inside the development
 phases where noted (RAG-2/3 = Phase 9).
 
+> **Naming reconciliation (2026-10-17):** "RAG-2" was used for three
+> different things. In THIS roadmap RAG-2 = hybrid dense+lexical retrieval
+> (below, Phase 9); `docs/RAG_IMPLEMENTATION_PLAN.md` §14 numbers its own
+> sequence differently (its RAG-2 = structure-aware parsing/chunking — the
+> old↔new mapping is documented there and is unchanged). **End-to-end
+> answer-quality evaluation is neither of those**: it is registered as
+> **RAG-AE**, appended at the end of this section and deliberately kept
+> outside the numbered RAG-1…RAG-6 implementation sequence, so no existing
+> phase ID is renumbered, removed, or re-scoped. Architecture-facing docs
+> were checked for phase-ID references (`docs/ARCHITECTURE.md`,
+> `docs/CONTROL_CENTER_PLAN.md` "MASTER_PLAN RAG-1…RAG-6", `docs/Plan.md`):
+> all remain accurate, because RAG-AE adds no numbered ID.
+
 #### RAG-1 — Current vector RAG stabilization (do first; no new retrieval)
 
 - **Problem**: refusal reliability depends on a prompt phrase + one global
@@ -451,6 +464,38 @@ phases where noted (RAG-2/3 = Phase 9).
   corpus; per-query LLM-call budget respected.
 - **Why not earlier**: complexity and cost are unjustified until simpler
   stages measurably fail. **This step may legitimately never be implemented.**
+
+#### RAG-AE — Answer-quality evaluation (separate track)
+
+> Not a numbered milestone: this is the work that was called "RAG-2
+> (answer quality)" in the 2026-10-17 closeout discussion. It is neither
+> hybrid retrieval (RAG-2 here) nor structure-aware chunking
+> (implementation-plan RAG-2); see the naming note at the top of §5.1.
+
+- **Problem**: RAG-1 measures retrieval ranking only. Nothing measures
+  whether the agent answers correctly, cites correctly, or abstains instead
+  of fabricating; the recorded abstention proxy proves only that the 0.35
+  score floor is unreachable (all top-1 scores ∈ [0.65, 0.83]).
+- **Scope**: evaluate end-to-end answers over the FROZEN gold set —
+  factual correctness against `required_facts`, evidence fidelity per
+  material claim, citation correctness (file + page where metadata exists),
+  abstention precision/recall on the unanswerable cases, false-answer rate;
+  one traceability artifact per run (question → retrieved top-5 → raw and
+  post-gate answer → per-metric verdict → model/config metadata). Retrieval,
+  prompts, thresholds, gold contents and dependencies unchanged.
+- **Dependencies**: RAG-1 (frozen v3 baseline, gold set, harness patterns,
+  temp-collection isolation contract, artifact self-verification style).
+- **Tests**: new offline suite (fake model + fake retrieval through the
+  real agent seam; scoring math; artifact self-verification; store/gold
+  guards) plus one separately authorized, budgeted live run.
+- **Acceptance**: the five metric families reported **separately with
+  denominators — no composite score**; v3 retrieval metrics re-measured
+  identical; production store byte-stable; every pre-existing suite green;
+  manual adjudication queue listed for ambiguous cases.
+- **Why not earlier**: needs the RAG-1 baseline and gold set, and an
+  explicitly authorized model budget for answer-level calls.
+- **What it must NOT change**: production answer path, `BOOKS_MIN_SCORE`,
+  prompts, gold v1, baselines v1/v2/v3, dependencies.
 
 ### 5.2 Planner contract (Phase 7)
 

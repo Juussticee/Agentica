@@ -1,0 +1,6 @@
+# RAG-1 frozen evaluation artifacts are byte-exact evidence.
+# The harness suite pins these files by SHA-256 and rebuilds the fixtures
+# byte-identically from scripts/make_rag_fixtures.py; any EOL conversion
+# on checkout (core.autocrlf) would break both invariants.
+benchmarks/rag_*.json -text
+benchmarks/rag_fixtures/** -text

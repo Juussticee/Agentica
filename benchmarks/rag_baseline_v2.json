@@ -1,0 +1,1954 @@
+{
+  "run_id": "books_eval_20261017-092323",
+  "timestamp_utc": "2026-10-17T06:23:23+00:00",
+  "git_head": "7a44a9a7f747a983d2ffeb2df767f7f4f265b5f2",
+  "config": {
+    "production_top_k": 3,
+    "score_floor": 0.35,
+    "score_semantics": "exp(-cosine_distance); floor is a deterministic proxy, not a calibrated probability",
+    "embedding_model": "nomic-embed-text",
+    "embedding_model_identity": {
+      "name": "nomic-embed-text:latest",
+      "digest": "0a109f422b47e3a30ba2b10eca18548e944e8a23073ee3f3e947efcf3c45e59f",
+      "size_bytes": 274302450,
+      "modified_at": "2026-09-26T09:43:55.2797362+03:00",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "nomic-bert",
+        "families": [
+          "nomic-bert"
+        ],
+        "parameter_size": "137M",
+        "quantization_level": "F16",
+        "context_length": 2048,
+        "embedding_length": 768,
+        "runner": "ggml"
+      },
+      "source": "http://localhost:11434/api/tags (local only)",
+      "measured_dimensions": [
+        768
+      ]
+    },
+    "ollama_base_url": "http://localhost:11434",
+    "ollama_unreachable_behavior": "abort with exit 2 before any indexing — no fallback embedding source, baseline not written",
+    "chunking": "production SentenceSplitter defaults (1024 tokens / 200 overlap, tiktoken cl100k_base)",
+    "ingest_caps": {
+      "max_file_mb": 50,
+      "max_pages": 500
+    },
+    "chat_model_calls": "none (RAG-1 is retrieval-only)",
+    "machine": {
+      "platform": "Windows-10-10.0.26100-SP0",
+      "python": "3.11.9",
+      "cpu_count": 12,
+      "packages": {
+        "chromadb": "1.5.9",
+        "llama-index-core": "0.14.25",
+        "llama-index-embeddings-ollama": "0.10.0",
+        "llama-index-vector-stores-chroma": "0.6.0",
+        "tiktoken": "0.14.0"
+      },
+      "note": "environment recorded for comparison; latency is machine-dependent and not a guarantee"
+    }
+  },
+  "metric_definitions": {
+    "version": "v2-page-metadata-aware",
+    "hit@k": "top-k contains min_docs_covered (default 1) distinct gold documents",
+    "precision@k": "covering nodes / k",
+    "reciprocal_rank": "1 / rank of first covering node",
+    "ndcg@5": "1/log2(1+first_hit_rank), binary relevance",
+    "note": "retrieval measurements on this gold set — NOT quality guarantees; latency and score distributions are measurements only"
+  },
+  "sections": {
+    "real_corpus": {
+      "retrieval_metrics_on_answerable": {
+        "cases": 11,
+        "hit@1": 0.9091,
+        "hit@3": 1.0,
+        "hit@5": 1.0,
+        "precision@1": 1.0,
+        "precision@3": 0.3636,
+        "precision@5": 0.2182,
+        "reciprocal_rank": 1.0,
+        "ndcg@5": 1.0,
+        "coverage": 1.0
+      },
+      "unanswerable_cases": 4,
+      "score_stats": {
+        "top1_scores_answerable": [
+          0.669829,
+          0.700532,
+          0.722315,
+          0.734006,
+          0.740278,
+          0.757902,
+          0.757938,
+          0.760988,
+          0.769855,
+          0.770408,
+          0.796501
+        ],
+        "top1_scores_unanswerable": [
+          0.6509,
+          0.681883,
+          0.729732,
+          0.7859
+        ]
+      },
+      "abstention_proxy": {
+        "correct_on_unanswerable": "0/4",
+        "false_abstain_on_answerable": "0/11"
+      },
+      "per_case": [
+        {
+          "id": "R001",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.757938,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "score": 0.7579377893457968
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.6398419048604619
+            },
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.618012392319693
+            }
+          ]
+        },
+        {
+          "id": "R002",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.740278,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "score": 0.7402782899823936
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.6104450547454072
+            },
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.6010429553558132
+            }
+          ]
+        },
+        {
+          "id": "R003",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.757902,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "score": 0.7579015133939384
+            },
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.62230982891759
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.6202195836828862
+            }
+          ]
+        },
+        {
+          "id": "R004",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.722315,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "score": 0.72231503507864
+            },
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.6203332336278397
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.6118147514219247
+            }
+          ]
+        },
+        {
+          "id": "R005",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "number-with-comma"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.669829,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "score": 0.6698290052161086
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.6326586687263416
+            },
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.6305918816373608
+            }
+          ]
+        },
+        {
+          "id": "R006",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.700532,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "score": 0.7005315296261149
+            },
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.6046687286974114
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "score": 0.5974546631152856
+            }
+          ]
+        },
+        {
+          "id": "R007",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.796501,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "score": 0.7965011352470837
+            },
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.6228796087097483
+            },
+            {
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "score": 0.6215058482552115
+            }
+          ]
+        },
+        {
+          "id": "R008",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.760988,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "score": 0.7609881824483709
+            },
+            {
+              "file": "fixture_scan.pdf",
+              "page": "2",
+              "score": 0.6246223849072436
+            },
+            {
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "score": 0.6177060630127058
+            }
+          ]
+        },
+        {
+          "id": "R009",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.734006,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "score": 0.7340058248555532
+            },
+            {
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "score": 0.6565944357029669
+            },
+            {
+              "file": "fixture_scan.pdf",
+              "page": "2",
+              "score": 0.6345548178624876
+            }
+          ]
+        },
+        {
+          "id": "R010",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "direct-factual"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.769855,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "score": 0.7698550801209016
+            },
+            {
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "score": 0.6132111323742307
+            },
+            {
+              "file": "fixture_scan.pdf",
+              "page": "2",
+              "score": 0.6075353608968007
+            }
+          ]
+        },
+        {
+          "id": "R011",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": true,
+          "labels": [
+            "multi-doc"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.666667,
+            "hit@5": true,
+            "precision@5": 0.4,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.770408,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "score": 0.7704075275498559
+            },
+            {
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "score": 0.7509694519333934
+            },
+            {
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "score": 0.6779684876977969
+            }
+          ]
+        },
+        {
+          "id": "R012",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": false,
+          "labels": [
+            "unanswerable"
+          ],
+          "first_hit_rank": null,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 0.0,
+            "hit@3": false,
+            "precision@3": 0.0,
+            "hit@5": false,
+            "precision@5": 0.0,
+            "first_hit_rank": null,
+            "reciprocal_rank": 0.0,
+            "ndcg@5": 0.0,
+            "coverage": false
+          },
+          "abstention_proxy": {
+            "top1_score": 0.6509,
+            "proxy_abstain": false,
+            "correct": false
+          },
+          "retrieved_top3": [
+            {
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "score": 0.6509002369886961
+            },
+            {
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "score": 0.5835827775132846
+            },
+            {
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "score": 0.5778056549215997
+            }
+          ]
+        },
+        {
+          "id": "R013",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": false,
+          "labels": [
+            "unanswerable"
+          ],
+          "first_hit_rank": null,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 0.0,
+            "hit@3": false,
+            "precision@3": 0.0,
+            "hit@5": false,
+            "precision@5": 0.0,
+            "first_hit_rank": null,
+            "reciprocal_rank": 0.0,
+            "ndcg@5": 0.0,
+            "coverage": false
+          },
+          "abstention_proxy": {
+            "top1_score": 0.729732,
+            "proxy_abstain": false,
+            "correct": false
+          },
+          "retrieved_top3": [
+            {
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "score": 0.7297319382922582
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.6641164131218775
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "score": 0.6535716954853891
+            }
+          ]
+        },
+        {
+          "id": "R014",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": false,
+          "labels": [
+            "unanswerable"
+          ],
+          "first_hit_rank": null,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 0.0,
+            "hit@3": false,
+            "precision@3": 0.0,
+            "hit@5": false,
+            "precision@5": 0.0,
+            "first_hit_rank": null,
+            "reciprocal_rank": 0.0,
+            "ndcg@5": 0.0,
+            "coverage": false
+          },
+          "abstention_proxy": {
+            "top1_score": 0.681883,
+            "proxy_abstain": false,
+            "correct": false
+          },
+          "retrieved_top3": [
+            {
+              "file": "orbital_kinetics_principles.docx",
+              "page": null,
+              "score": 0.6818825474048571
+            },
+            {
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "score": 0.6048717460481385
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.5930093580443495
+            }
+          ]
+        },
+        {
+          "id": "R015",
+          "section": "real_corpus",
+          "synthetic": false,
+          "answerable": false,
+          "labels": [
+            "unanswerable",
+            "metadata-absent"
+          ],
+          "first_hit_rank": null,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 0.0,
+            "hit@3": false,
+            "precision@3": 0.0,
+            "hit@5": false,
+            "precision@5": 0.0,
+            "first_hit_rank": null,
+            "reciprocal_rank": 0.0,
+            "ndcg@5": 0.0,
+            "coverage": false
+          },
+          "abstention_proxy": {
+            "top1_score": 0.7859,
+            "proxy_abstain": false,
+            "correct": false
+          },
+          "retrieved_top3": [
+            {
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "score": 0.7858997125236399
+            },
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.6576757156248417
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.6482468847398577
+            }
+          ]
+        }
+      ]
+    },
+    "synthetic_fixtures": {
+      "retrieval_metrics_on_answerable": {
+        "cases": 14,
+        "hit@1": 0.8571,
+        "hit@3": 1.0,
+        "hit@5": 1.0,
+        "precision@1": 0.9286,
+        "precision@3": 0.3571,
+        "precision@5": 0.2143,
+        "reciprocal_rank": 0.9643,
+        "ndcg@5": 0.9736,
+        "coverage": 1.0
+      },
+      "unanswerable_cases": 3,
+      "score_stats": {
+        "top1_scores_answerable": [
+          0.661825,
+          0.702354,
+          0.712965,
+          0.72016,
+          0.723255,
+          0.733922,
+          0.738392,
+          0.741676,
+          0.765566,
+          0.769984,
+          0.772327,
+          0.772874,
+          0.775728,
+          0.830652
+        ],
+        "top1_scores_unanswerable": [
+          0.712682,
+          0.726903,
+          0.747266
+        ]
+      },
+      "abstention_proxy": {
+        "correct_on_unanswerable": "0/3",
+        "false_abstain_on_answerable": "0/14"
+      },
+      "per_case": [
+        {
+          "id": "S001",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "headings-context"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.775728,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.7757279060043284
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.7279738436630105
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "score": 0.6952537291246131
+            }
+          ]
+        },
+        {
+          "id": "S002",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "headings-context"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.723255,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.7232546388289852
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.6896860871171752
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "score": 0.6600366002985701
+            }
+          ]
+        },
+        {
+          "id": "S003",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "subsection-context"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.661825,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.6618253878619622
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "score": 0.6554284734590167
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.6547485209528221
+            }
+          ]
+        },
+        {
+          "id": "S004",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "table"
+          ],
+          "first_hit_rank": 2,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 0.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 2,
+            "reciprocal_rank": 0.5,
+            "ndcg@5": 0.63093,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.741676,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.7416756913770336
+            },
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.7258611884326436
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "score": 0.680681335243946
+            }
+          ]
+        },
+        {
+          "id": "S005",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "multi-column"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.772327,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.7723274376654555
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "score": 0.7054648362848368
+            },
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.6839398825093492
+            }
+          ]
+        },
+        {
+          "id": "S006",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "multi-column"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.72016,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.7201595635586997
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "score": 0.6618354471445309
+            },
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.6390214824048608
+            }
+          ]
+        },
+        {
+          "id": "S007",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "multi-column"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.772874,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.7728737357150267
+            },
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.7561701052522377
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "score": 0.7175796901293375
+            }
+          ]
+        },
+        {
+          "id": "S008",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "table"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.738392,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "score": 0.7383923205877965
+            },
+            {
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "score": 0.6290314321824707
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.6275518189585776
+            }
+          ]
+        },
+        {
+          "id": "S009",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "figure-caption"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.830652,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "score": 0.830652026912551
+            },
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.7099019906633247
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.700370624596382
+            }
+          ]
+        },
+        {
+          "id": "S010",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "partial-document"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.769984,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_scan.pdf",
+              "page": "2",
+              "score": 0.7699844462688573
+            },
+            {
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "score": 0.6742830402420502
+            },
+            {
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "score": 0.6740454764499348
+            }
+          ]
+        },
+        {
+          "id": "S011",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "adversarial-host-document"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.702354,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "score": 0.7023536168899192
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "score": 0.6728099854278076
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.6655442517651202
+            }
+          ]
+        },
+        {
+          "id": "S012",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "adversarial-host-document"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.733922,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "score": 0.733922048087297
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.7199828636120903
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "score": 0.7076398861251397
+            }
+          ]
+        },
+        {
+          "id": "S013",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": false,
+          "labels": [
+            "unanswerable",
+            "ocr-gap"
+          ],
+          "first_hit_rank": null,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 0.0,
+            "hit@3": false,
+            "precision@3": 0.0,
+            "hit@5": false,
+            "precision@5": 0.0,
+            "first_hit_rank": null,
+            "reciprocal_rank": 0.0,
+            "ndcg@5": 0.0,
+            "coverage": false
+          },
+          "abstention_proxy": {
+            "top1_score": 0.747266,
+            "proxy_abstain": false,
+            "correct": false
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_scan.pdf",
+              "page": "2",
+              "score": 0.7472662920460864
+            },
+            {
+              "file": "urban_beekeeping_field_guide.pdf",
+              "page": "1",
+              "score": 0.6843005935764014
+            },
+            {
+              "file": "fixture_table.pdf",
+              "page": "1",
+              "score": 0.6789227150389922
+            }
+          ]
+        },
+        {
+          "id": "S014",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": false,
+          "labels": [
+            "unanswerable",
+            "adversarial-fake-citation"
+          ],
+          "first_hit_rank": null,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 0.0,
+            "hit@3": false,
+            "precision@3": 0.0,
+            "hit@5": false,
+            "precision@5": 0.0,
+            "first_hit_rank": null,
+            "reciprocal_rank": 0.0,
+            "ndcg@5": 0.0,
+            "coverage": false
+          },
+          "abstention_proxy": {
+            "top1_score": 0.712682,
+            "proxy_abstain": false,
+            "correct": false
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_adversarial.docx",
+              "page": null,
+              "score": 0.7126820827021959
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "score": 0.7104173439597286
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.6997223691529126
+            }
+          ]
+        },
+        {
+          "id": "S015",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": false,
+          "labels": [
+            "unanswerable"
+          ],
+          "first_hit_rank": null,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 0.0,
+            "hit@3": false,
+            "precision@3": 0.0,
+            "hit@5": false,
+            "precision@5": 0.0,
+            "first_hit_rank": null,
+            "reciprocal_rank": 0.0,
+            "ndcg@5": 0.0,
+            "coverage": false
+          },
+          "abstention_proxy": {
+            "top1_score": 0.726903,
+            "proxy_abstain": false,
+            "correct": false
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.7269030571435217
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.6845082334159299
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "score": 0.6795369977607927
+            }
+          ]
+        },
+        {
+          "id": "S016",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "multi-doc",
+            "synthetic-cross-fixture"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": false,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.666667,
+            "hit@5": true,
+            "precision@5": 0.4,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.765566,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.7655658154812823
+            },
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.7605921250183038
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "score": 0.7187540747250201
+            }
+          ]
+        },
+        {
+          "id": "S017",
+          "section": "synthetic_fixtures",
+          "synthetic": true,
+          "answerable": true,
+          "labels": [
+            "exact-term",
+            "multi-column",
+            "second-page"
+          ],
+          "first_hit_rank": 1,
+          "metrics": {
+            "hit@1": true,
+            "precision@1": 1.0,
+            "hit@3": true,
+            "precision@3": 0.333333,
+            "hit@5": true,
+            "precision@5": 0.2,
+            "first_hit_rank": 1,
+            "reciprocal_rank": 1.0,
+            "ndcg@5": 1.0,
+            "coverage": true
+          },
+          "abstention_proxy": {
+            "top1_score": 0.712965,
+            "proxy_abstain": false,
+            "correct": true
+          },
+          "retrieved_top3": [
+            {
+              "file": "fixture_columns.pdf",
+              "page": "2",
+              "score": 0.7129654325486191
+            },
+            {
+              "file": "fixture_columns.pdf",
+              "page": "1",
+              "score": 0.6572470016469912
+            },
+            {
+              "file": "fixture_headings.docx",
+              "page": null,
+              "score": 0.6024399941526664
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "abstention_proxy": {},
+  "latency_ms": {
+    "retrieval_per_query": {
+      "p50": 148.985,
+      "p90": 192.198,
+      "max": 205.232
+    },
+    "embed_call_per_query": {
+      "calls": 32,
+      "dimensions_observed": [
+        768
+      ],
+      "p50": 155.271,
+      "p90": 176.392,
+      "max": 3490.373,
+      "per_query": [
+        {
+          "query": "What is the orbital speed of a spacecraft in low Earth orbit at 400 km altitude?",
+          "ms": 3490.373,
+          "dimensions": 768
+        },
+        {
+          "query": "How long does one revolution take for a low Earth orbit spacecraft at 400 km altitude?",
+          "ms": 101.708,
+          "dimensions": 768
+        },
+        {
+          "query": "How much delta-v does a Hohmann transfer from low Earth orbit to geostationary transfer orbit require?",
+          "ms": 158.191,
+          "dimensions": 768
+        },
+        {
+          "query": "How much additional delta-v is needed to circularize at geostationary altitude after a transfer?",
+          "ms": 161.55,
+          "dimensions": 768
+        },
+        {
+          "query": "At what altitude does geostationary orbit lie above the equator?",
+          "ms": 154.277,
+          "dimensions": 768
+        },
+        {
+          "query": "In what year was the Tsiolkovsky rocket equation first derived?",
+          "ms": 133.871,
+          "dimensions": 768
+        },
+        {
+          "query": "How many worker bees can a healthy hive contain in midsummer?",
+          "ms": 132.308,
+          "dimensions": 768
+        },
+        {
+          "query": "What is the width of the bee space that bees keep free of comb and propolis?",
+          "ms": 165.749,
+          "dimensions": 768
+        },
+        {
+          "query": "Below what moisture content is honey harvested to prevent fermentation during storage?",
+          "ms": 149.377,
+          "dimensions": 768
+        },
+        {
+          "query": "What do bees collect from plant buds to seal small gaps and sterilize the hive interior?",
+          "ms": 162.187,
+          "dimensions": 768
+        },
+        {
+          "query": "Which document explains the Tsiolkovsky rocket equation, and which document explains bee space in hive construction?",
+          "ms": 153.144,
+          "dimensions": 768
+        },
+        {
+          "query": "What is the recommended treatment for varroa mite infestation?",
+          "ms": 140.537,
+          "dimensions": 768
+        },
+        {
+          "query": "What technique does the field guide describe for rearing queens in winter?",
+          "ms": 140.937,
+          "dimensions": 768
+        },
+        {
+          "query": "What thrust-to-weight ratio is required at liftoff for a launch vehicle?",
+          "ms": 178.503,
+          "dimensions": 768
+        },
+        {
+          "query": "Who is the author of the urban beekeeping field guide?",
+          "ms": 143.518,
+          "dimensions": 768
+        },
+        {
+          "query": "What is the spring tide tidal range at Port Meridian in the almanac?",
+          "ms": 166.876,
+          "dimensions": 768
+        },
+        {
+          "query": "How far does the neap tide at Port Meridian fall, according to the almanac?",
+          "ms": 172.294,
+          "dimensions": 768
+        },
+        {
+          "query": "How often must the tide gauge float chamber at Port Meridian be flushed?",
+          "ms": 170.12,
+          "dimensions": 768
+        },
+        {
+          "query": "What mean wind speed does the almanac list for January, and what gust speed?",
+          "ms": 159.709,
+          "dimensions": 768
+        },
+        {
+          "query": "What mean annual wind speed does the lighthouse gauge at Cape Aurora record?",
+          "ms": 141.198,
+          "dimensions": 768
+        },
+        {
+          "query": "At what wind speed is the ferry crossing between Hale and the outer harbour suspended?",
+          "ms": 140.113,
+          "dimensions": 768
+        },
+        {
+          "query": "What mean tide range does the synthetic tide table list for Hale?",
+          "ms": 127.256,
+          "dimensions": 768
+        },
+        {
+          "query": "How many kilograms does the harvest register record for quarter three?",
+          "ms": 140.189,
+          "dimensions": 768
+        },
+        {
+          "query": "Which table number reports the synthetic harvest yields by quarter?",
+          "ms": 130.279,
+          "dimensions": 768
+        },
+        {
+          "query": "What smoke fuel does the synthetic apiary inspector prefer?",
+          "ms": 133.067,
+          "dimensions": 768
+        },
+        {
+          "query": "How often is the synthetic harbour crane at berth 4 inspected?",
+          "ms": 155.685,
+          "dimensions": 768
+        },
+        {
+          "query": "What is the fictional load limit of the harbour crane at berth 4?",
+          "ms": 156.939,
+          "dimensions": 768
+        },
+        {
+          "query": "What is written on the sign shown on the first page of the apiary inspection notes?",
+          "ms": 155.271,
+          "dimensions": 768
+        },
+        {
+          "query": "According to orchard_manual.pdf on page 9, how often must the harbour crane be oiled?",
+          "ms": 165.989,
+          "dimensions": 768
+        },
+        {
+          "query": "What revision date does the Meridian almanac carry on its title page?",
+          "ms": 155.402,
+          "dimensions": 768
+        },
+        {
+          "query": "Compare the two synthetic harbour documents: what is the tidal range at Port Meridian and the mean tide range at Hale?",
+          "ms": 190.195,
+          "dimensions": 768
+        },
+        {
+          "query": "How often does the outer harbour fog signal sound during reduced visibility?",
+          "ms": 176.392,
+          "dimensions": 768
+        }
+      ],
+      "label": "one embed call per unique query, measured on this machine, not a guarantee"
+    },
+    "label": "measurement on this machine, not a guarantee"
+  },
+  "limitations": [
+    "REAL CORPUS IS THE MEASUREMENT CEILING: both real documents fit in a single chunk each, so any top-k>=2 retrieval over the real section trivially includes the gold chunk whenever the query embeds anywhere near the corpus — real-corpus metrics cannot discriminate retrieval quality (spec hypothesis H10).",
+    "The eval collection holds 8 chunks total (2 real + fixture chunks); synthetic-fixture metrics show discriminating behavior but DO NOT establish real-world retrieval accuracy.",
+    "Answer-level metrics (citation correctness, unsupported-claim rate) are NOT measured: they require chat-model calls, which are outside this authorization.",
+    "The abstention proxy measures only the deterministic score floor; production refusal also involves prompt and grounding behavior that requires a chat model."
+  ],
+  "git_dirty": true,
+  "corpus": {
+    "real_files": [
+      {
+        "file": "orbital_kinetics_principles.docx",
+        "sha256": "1f27fda1b03dd6b113ae652fd31f39fcc1e8f334c32e16d3a5776a25f2f28bc0",
+        "bytes": 37271
+      },
+      {
+        "file": "urban_beekeeping_field_guide.pdf",
+        "sha256": "3b06713d23799cd26470add968b5d0f08e821266bc72af2901615072a9b46672",
+        "bytes": 1957
+      }
+    ],
+    "fixture_files": [
+      {
+        "file": "fixture_headings.docx",
+        "sha256": "3f60da7451770548e8947d199b06021b6183e7ee6ff9985c4f4ed61ce15c6834",
+        "bytes": 37381
+      },
+      {
+        "file": "fixture_columns.pdf",
+        "sha256": "9a3ed816bb680e5b075c6fb8338ac0d249a1af338d9c91168a3b85beb253d44b",
+        "bytes": 2652
+      },
+      {
+        "file": "fixture_table.pdf",
+        "sha256": "aae1b17e0240927e38782746a65768ca1e350d4683c4d93266fd93b43b2c8277",
+        "bytes": 1705
+      },
+      {
+        "file": "fixture_scan.pdf",
+        "sha256": "21be3de2cefbfddf6ff204be475d78698c3ee330e3388afee667e01f58936b54",
+        "bytes": 9544
+      },
+      {
+        "file": "fixture_adversarial.docx",
+        "sha256": "e703583c7b16d7e72e620a4adbb958d046e02c3fac5f7afc42140208cba2154a",
+        "bytes": 37283
+      }
+    ]
+  },
+  "gold": {
+    "path": "benchmarks\\rag_gold_v1.json",
+    "sha256": "16e25677f2effbd65bba0475754f7b9f5c85344d468497dd322234b155bbb25d",
+    "cases": 32,
+    "real_cases": 15,
+    "synthetic_cases": 17,
+    "gap_list": [
+      "No real multi-column documents in the corpus (only the synthetic columns fixture).",
+      "No real scanned/image-only pages in the corpus (only the synthetic scan fixture).",
+      "No real tables in the corpus (only the synthetic table fixtures).",
+      "No real multi-page tables, figures, charts, or captions in the corpus.",
+      "No Arabic-language cases (Q4=A: English-only initial baseline).",
+      "No genuine real-corpus cross-document questions beyond the single crafted comparison R011.",
+      "No footnotes/references sections in the corpus.",
+      "No documents larger than one 1024-token chunk: every corpus file and fixture fits in a single chunk under current chunking, so chunk-boundary behavior is NOT exercised by this gold set.",
+      "Answer-level metrics (citation correctness, unsupported-claim rate) are out of RAG-1 scope: they require chat-model calls, which are not authorized."
+    ],
+    "review_notes": [],
+    "sha256_after": "16e25677f2effbd65bba0475754f7b9f5c85344d468497dd322234b155bbb25d"
+  },
+  "ingest": {
+    "seconds": 9.857,
+    "collection": "books_eval_20261017-092323",
+    "temp_dir_used": true,
+    "chunks_in_eval_collection": 8,
+    "per_file": {
+      "orbital_kinetics_principles.docx": {
+        "status": "indexed",
+        "chunks": 1,
+        "documents": 1,
+        "nonempty_pages": 1,
+        "empty_pages": [],
+        "category": null,
+        "_ingest_seconds": 2.163
+      },
+      "urban_beekeeping_field_guide.pdf": {
+        "status": "indexed",
+        "chunks": 1,
+        "documents": 1,
+        "nonempty_pages": 1,
+        "empty_pages": [],
+        "category": null,
+        "_ingest_seconds": 0.797
+      },
+      "fixture_headings.docx": {
+        "status": "indexed",
+        "chunks": 1,
+        "documents": 1,
+        "nonempty_pages": 1,
+        "empty_pages": [],
+        "category": null,
+        "_ingest_seconds": 0.853
+      },
+      "fixture_columns.pdf": {
+        "status": "indexed",
+        "chunks": 2,
+        "documents": 2,
+        "nonempty_pages": 2,
+        "empty_pages": [],
+        "category": null,
+        "_ingest_seconds": 1.135
+      },
+      "fixture_table.pdf": {
+        "status": "indexed",
+        "chunks": 1,
+        "documents": 1,
+        "nonempty_pages": 1,
+        "empty_pages": [],
+        "category": null,
+        "_ingest_seconds": 0.444
+      },
+      "fixture_scan.pdf": {
+        "status": "partial",
+        "chunks": 1,
+        "documents": 2,
+        "nonempty_pages": 1,
+        "empty_pages": [
+          "page 1"
+        ],
+        "category": "partial_extractable_text",
+        "_ingest_seconds": 0.511
+      },
+      "fixture_adversarial.docx": {
+        "status": "indexed",
+        "chunks": 1,
+        "documents": 1,
+        "nonempty_pages": 1,
+        "empty_pages": [],
+        "category": null,
+        "_ingest_seconds": 0.918
+      }
+    }
+  },
+  "fidelity_check_production_top3_equals_top5_prefix": true,
+  "failures_and_timeouts": {
+    "ingest_failed_files": [],
+    "ingest_partial_files": [
+      "fixture_scan.pdf"
+    ],
+    "embed_call_failures": 0,
+    "retrieval_errors": 0,
+    "retrieval_timeouts": 0,
+    "note": "a written baseline implies zero failures on this run: an embed/Ollama failure aborts BEFORE indexing with exit 2 and no baseline; an ingest failure aborts with exit 1; a retrieval error raises out and no baseline is written. Counts are of THIS run, not of the pipeline under all conditions."
+  },
+  "guards": {
+    "real_store_before": {
+      "C:\\Users\\hashe\\Documents\\Agentic_System\\storage\\chroma.sqlite3": {
+        "size": 245760,
+        "mtime_ns": 1792217636451168800,
+        "sha256": "cb0e25647c81a9e03293513abde75d9df2f2ac26e3a4a459a2d61f2444d6fd7f"
+      },
+      "C:\\Users\\hashe\\Documents\\Agentic_System\\storage\\.index_manifest.json": {
+        "size": 1055,
+        "mtime_ns": 1791887807927841200,
+        "sha256": "d2aa0135fbffc754210cff13228e58d2b8ce01e2f4fdc9d14120de663294c4ef"
+      }
+    },
+    "real_store_after": {
+      "C:\\Users\\hashe\\Documents\\Agentic_System\\storage\\chroma.sqlite3": {
+        "size": 245760,
+        "mtime_ns": 1792217636451168800,
+        "sha256": "cb0e25647c81a9e03293513abde75d9df2f2ac26e3a4a459a2d61f2444d6fd7f"
+      },
+      "C:\\Users\\hashe\\Documents\\Agentic_System\\storage\\.index_manifest.json": {
+        "size": 1055,
+        "mtime_ns": 1791887807927841200,
+        "sha256": "d2aa0135fbffc754210cff13228e58d2b8ce01e2f4fdc9d14120de663294c4ef"
+      }
+    },
+    "real_store_unchanged": true,
+    "gold_unchanged": true,
+    "chroma_client_paths_constructed": [
+      "C:\\Users\\hashe\\AppData\\Local\\Temp\\rag_eval_zhyfcosu",
+      "C:\\Users\\hashe\\AppData\\Local\\Temp\\rag_eval_zhyfcosu",
+      "C:\\Users\\hashe\\AppData\\Local\\Temp\\rag_eval_zhyfcosu"
+    ],
+    "all_chroma_clients_on_temp_paths": true,
+    "production_query_engine_cache_used": false
+  }
+}

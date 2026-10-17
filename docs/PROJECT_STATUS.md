@@ -19,6 +19,9 @@ Control Center GUI-3: RESTORED (React shell, dashboard, history, detail)
 Control Center GUI-16: PARTIAL (AI settings + 7-phase readiness + 21 tests)
 Operations dashboard (GUI-5/GUI-7 slice): RESTORED (real service health,
   event-derived agent activity, execution sequence; 14 ops tests)
+RAG-1 (retrieval baseline & evaluation): COMPLETE (gold set + fixtures +
+  evaluator + frozen baseline v3; 38 offline tests; audit + completion
+  report; answer-level evaluation = RAG-AE, NOT STARTED)
 GUI-4, GUI-6, GUI-8..19: NOT STARTED
 ```
 
@@ -186,6 +189,42 @@ GUI-4, GUI-6, GUI-8..19: NOT STARTED
   specified; see [PHASE3_ERP_PLAN.md](PHASE3_ERP_PLAN.md),
   "ERP-Specific Details Deferred".
 
+### RAG-1 (retrieval baseline & evaluation — implemented)
+
+Deterministic retrieval evaluation for the books pipeline, measured
+against a frozen reference instead of intuition:
+
+- **Gold set** `benchmarks/rag_gold_v1.json` — 32 labeled cases (25
+  answerable / 7 unanswerable; 17 synthetic) with `required_facts`,
+  `citation_expectation`, per-case provenance and a 9-item gap list;
+  SHA-256 pinned (`16e25677…`) and immutable to the code under test.
+- **Fixture corpus** `benchmarks/rag_fixtures/` built by
+  `scripts/make_rag_fixtures.py` — byte-deterministic synthetic documents
+  (table, columns, scan, headings, adversarial) so retrieval behavior can
+  actually discriminate.
+- **Harness** `scripts/eval_retrieval.py` — throwaway temp eval collection
+  with instrumented Chroma clients (fails hard on any non-temp path),
+  stat + SHA-256 guards on the production store and gold set before/after,
+  embedding-model identity + config + git metadata recorded, and
+  **output safety**: an existing `--out` report is refused with exit 3
+  before any work unless `--force` is passed.
+- **Frozen baseline** `benchmarks/rag_baseline_v3.json` (`aa89c37b…`,
+  `artifact_schema.version=3` / `ordered-top5-per-case`): real hit@1
+  0.9091 (10/11), hit@3 1.0, MRR 1.0, nDCG@5 1.0; synthetic hit@1 0.8571
+  (12/14), hit@3 1.0, MRR 0.9643, nDCG@5 0.9736 — denominators and
+  caveats in `docs/TESTING.md` ("RAG-1 frozen baseline (v3)").
+- **Tests** `scripts/test_rag_eval_harness.py` — 38 offline tests (metrics
+  math, guards, fixture determinism, isolation proof, artifact-evidence
+  recalculation, overwrite safety, SHA-256 pins for gold + v1/v2/v3); the
+  frozen-baseline gate `benchmark_verification.py --check` reports
+  `MATCH`.
+- **Docs** `docs/RAG_BASELINE_AUDIT.md` (v1 audit preserved + §7 v2/v3
+  addendum), `docs/RAG_1_COMPLETION_REPORT.md` (phase report),
+  `docs/TESTING.md` (recorded metrics).
+- **Not measured:** answer-level correctness and refusal — that is
+  **RAG-AE** (see "Not Yet Implemented"). No production code changed:
+  `app/`, `ingest_books.py`, prompts and thresholds are untouched.
+
 ## Current Architecture
 
 Single `AgentState` (`app/state.py`), single compiled graph (`app/graph.py`),
@@ -233,6 +272,13 @@ START → supervisor → books_agent ──────────────�
    task) for complex questions, so dispatched runs can differ from the old
    fixed feasibility chain — QA flags any missing/not-completed parts;
    see docs/TESTING.md "Known environment-dependent flake".
+9. **RAG-1 measures retrieval ranking only.** The abstention proxy is a
+   score-floor check (0.35 unreachable — every top-1 score ≥ 0.65) and says
+   nothing about answer-level refusal; real-corpus retrieval metrics cannot
+   discriminate (2 single-chunk documents); and coverage-family metrics
+   changed meaning with the page-metadata-aware relevance rule (v1 vs
+   v2/v3 values are not comparable — `docs/RAG_BASELINE_AUDIT.md` §7).
+   Answer quality is **RAG-AE**, not started.
 
 ## Not Yet Implemented
 
@@ -297,6 +343,23 @@ byte-identical pre-Phase-7 edges. 21 new deterministic tests in
 `scripts/test_phase8_execution.py` (zero quota). Full regression: 184
 passed + 1 skipped (see TESTING.md known-flake note for the
 Ollama-running environment). Config addition: `MAX_TASK_RETRIES` (2).
+
+### RAG-AE note (answer-quality evaluation — NOT started)
+
+RAG-1 proves retrieval ranking only. **RAG-AE** is the separately
+registered track (defined in `docs/MASTER_PLAN.md` §5.1; deliberately kept
+outside the numbered RAG-1…RAG-6 sequence because the name "RAG-2" already
+means hybrid retrieval there and structure-aware chunking in
+`docs/RAG_IMPLEMENTATION_PLAN.md`) that will measure end-to-end answers:
+factual correctness against `required_facts`, evidence fidelity per claim,
+citation correctness, abstention precision/recall on the 7 unanswerable
+cases, and false-answer rate — reported as five separate metric families,
+never one composite score. It must not change the production answer path,
+`BOOKS_MIN_SCORE`, prompts, the gold set or the frozen baselines, and it
+needs its own authorization plus a model budget (local Ollama preferred on
+4 GB VRAM; Gemini spends free-tier quota). Plan: one new offline suite +
+new `scripts/eval_answers.py` + a recorded artifact — see
+[RAG_1_COMPLETION_REPORT.md](RAG_1_COMPLETION_REPORT.md) §7.
 
 ### Control Center status (GUI)
 
