@@ -237,7 +237,13 @@ def _polarity_conflict(sentence: str, evidence_clauses: list) -> bool:
     numbers = _number_tokens(sentence)
     for clause, clause_toks, clause_neg in evidence_clauses:
         if clause_neg != sentence_neg:
-            if toks and toks <= clause_toks:
+            # Rule A must use the SAME bounded family coverage as the
+            # main gate: a raw subset check missed a need→require swap,
+            # so a clause that NEGATED the claim failed to block the
+            # affirmative wording of it (adversarial regression:
+            # polarity across a family swap). Family-aware coverage can
+            # only widen this gate toward UNSUPPORTED — it never blesses.
+            if toks and _sentence_covered(toks, clause_toks):
                 return True                     # rule A
             if numbers & clause_toks & _number_tokens(clause):
                 return True                     # rule B
@@ -260,12 +266,20 @@ _STOP_TOKENS = frozenset("""
     topics document documents book books guide guides manual manuals
     passage passages context summaries requested request
     cover covers covered covering
+    use uses used using
     anything something nothing everything
 """.split())
 
 
 def _support_tokens(text: str) -> set:
-    """Content tokens of a text: exact numbers, stop-filtered stemmed words."""
+    """Content tokens of a text: exact numbers, stop-filtered stemmed words.
+
+    Normalization only (applied IDENTICALLY to answer sentences, evidence
+    clauses and corpus text, so any pass is a relative effect of wording,
+    never of asymmetric rules): plural "s" as before, plus light
+    derivational strips (-ed / -ing when the remaining stem is long enough
+    to stay a word, then a final "e"). Numbers are never stemmed.
+    """
     tokens = set()
     for raw in re.findall(r"\$?\d[\d,.]*%?|[a-z]+", text.lower()):
         token = raw.replace(",", "").replace("$", "").rstrip("%.")
@@ -273,11 +287,94 @@ def _support_tokens(text: str) -> set:
             if token:
                 tokens.add(token)
         elif token not in _STOP_TOKENS and len(token) > 2:
-            if token.endswith("s") and len(token) > 3 \
-                    and not token.endswith(("ss", "us", "is")):
+            # "times" (the multiplication word) is exact-matched, never
+            # collapsed to its duration homonym "time": otherwise
+            # evidence that merely spends TIME satisfies the multiply
+            # family for a MULTIPLIED claim (adversarial regression:
+            # duration-time vs multiplied claim). Symmetric — both sides
+            # of coverage normalize identically, as everywhere above.
+            if (token.endswith("s") and len(token) > 3
+                    and token != "times"
+                    and not token.endswith(("ss", "us", "is"))):
                 token = token[:-1]
+            if token.endswith("ed") and len(token) >= 6:
+                token = token[:-2]            # required -> requir
+            elif token.endswith("ing") and len(token) >= 6:
+                token = token[:-3]            # moving -> mov
+            if token.endswith("e") and len(token) >= 5:
+                token = token[:-1]            # determine -> determin; the
+                # >= 5 floor deliberately spares 4-letter e-words (page,
+                # move) so they stay identical to the unstemmed forms
+                # _metadata_tokens adds verbatim ("page").
             tokens.add(token)
     return tokens
+
+
+# --- bounded phrase/synonym coverage (verified false-refusal repair) ------
+# Small, explicit families of domain words that mean the same thing in this
+# corpus where the model paraphrases ("orbital mechanics" over source
+# "orbital kinetics", "propulsion systems" over "propulsion engine",
+# "calculated" over "determines/derives"). Each entry lists SURFACE FORMS
+# AFTER the normalization above — including a member's OWN normalized form
+# where the rule applies (change -> chang, engine -> engin, vehicle ->
+# vehicl), so membership matches what `_support_tokens` actually emits.
+#
+# Contract (deliberately not a semantic matcher):
+#   * a sentence token counts as covered without a literal hit ONLY when
+#     another member of its own group literally appears in the evidence —
+#     a group can never invent support, it can only relabel wording;
+#   * NUMBERS are exempt from groups entirely (exact match stays mandatory);
+#   * coverage remains per sentence — one supported sentence still never
+#     carries an unrelated one, and the polarity gates still run before any
+#     group is consulted;
+#   * no embeddings, no LLM, no network: static data, constant-time lookup.
+# Documented residual: a genuinely novel concept with no group and no
+# literal token still refuses — that is the gate working, not a defect.
+_PARAPHRASE_GROUPS = (
+    frozenset({"mechanic", "kinetic", "dynamic", "motion"}),
+    frozenset({"propulsion", "engine", "engin", "thrust", "rocket"}),
+    frozenset({"system", "spacecraft", "vehicle", "vehicl"}),
+    frozenset({"need", "requir", "necessit"}),
+    frozenset({"calculat", "comput", "estim", "deriv", "determin"}),
+    # Multiplication family ONLY — deliberately excludes "equal": an
+    # equality word alone must never alias a multiplication claim
+    # (adversarial regression: inverted "multiplied by" formula).
+    # Entry is "times" — the multiplication word's POST-normalization
+    # form — not the duration homonym "time": with the singular spelling
+    # in the family, evidence that merely spends TIME admitted a
+    # MULTIPLIED claim (adversarial regression: duration-time vs
+    # multiplied claim).
+    frozenset({"multipli", "multiply", "times"}),
+    frozenset({"refer", "relat", "describ", "express"}),
+    # "delta" is the domain's own word for a change in velocity, so it
+    # anchors this family in the verified corpus. Deliberately excludes
+    # motion verbs ("moves"/"moving"): moving and CHANGING an orbit are
+    # materially different claims (adversarial regression D1).
+    # "modifi" is what `_support_tokens` actually emits for modifies /
+    # modified / modifying — the former "modif" entry was DEAD (no input
+    # produces it), which over-refused every natural "modify" inflection
+    # against sibling-member evidence (adversarial regression:
+    # test_modify_inflection_paraphrase_is_admitted).
+    frozenset({"change", "chang", "alter", "adjust", "modifi", "modify",
+               "vari", "delta"}),
+)
+
+
+def _sentence_covered(toks: set, corpus: set) -> bool:
+    """Every content token of ONE sentence evidenced: literally, or via its
+    bounded paraphrase group when a sibling member occurs in the evidence.
+    Numeric tokens must always match literally (never group-covered)."""
+    for tok in toks:
+        if tok in corpus:
+            continue
+        if tok.isdigit():
+            return False
+        for group in _PARAPHRASE_GROUPS:
+            if tok in group and not group.isdisjoint(corpus):
+                break
+        else:
+            return False
+    return True
 
 
 # Inline citation shapes inside MODEL text. Each is validated against the
@@ -534,7 +631,7 @@ def _grounded_repair(answer_text: str, source_nodes: list):
             toks = _support_tokens(sentence)
             if not toks:
                 kind = "glue"          # no substantiable content either way
-            elif toks <= corpus:
+            elif _sentence_covered(toks, corpus):
                 # Token overlap is NOT proof: refuse to bless a claim whose
                 # own evidence states the opposite polarity (narrow gates).
                 kind = ("unsupported"
