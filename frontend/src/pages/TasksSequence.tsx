@@ -1,10 +1,15 @@
 import { useState } from 'react'
 import { getSequence, type SequenceStage } from '../api/dashboard'
 import { Button, Empty, ErrorCard, StatusBadge } from '../components/ui'
+import { allowlistedClass } from '../lib/classSuffix'
+
+// Stage statuses recorded by the sequence serializer; anything else renders
+// the neutral base class.
+const STAGE_STATUSES = ['running', 'completed', 'failed'] as const
 
 export function StageRow({ s }: { s: SequenceStage }) {
   return (
-    <li className={`stage stage--${s.status}`}>
+    <li className={allowlistedClass('stage', 'stage--', STAGE_STATUSES, s.status)}>
       <div className="stage__head">
         <StatusBadge status={s.status === 'running' ? 'running'
           : s.status === 'failed' ? 'failed' : 'completed'} />

@@ -1,4 +1,5 @@
 import type { ExecutionStatus } from '../api/types'
+import { allowlistedClass } from '../lib/classSuffix'
 
 export function Loading({ label = 'Loading…' }: { label?: string }) {
   return <div className="state loading" role="status">{label}</div>
@@ -52,7 +53,13 @@ const STATUS_LABELS: Record<ExecutionStatus, string> = {
 }
 
 export function StatusBadge({ status }: { status: ExecutionStatus }) {
-  return <span className={`badge badge--${status}`}>{STATUS_LABELS[status] ?? status}</span>
+  // The status is API data: map it to a class only via the label map's own
+  // keys; unknown values render the neutral base badge with the raw label.
+  return (
+    <span className={allowlistedClass('badge', 'badge--', Object.keys(STATUS_LABELS), status)}>
+      {STATUS_LABELS[status] ?? status}
+    </span>
+  )
 }
 
 export function Button(props: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'ghost' }) {

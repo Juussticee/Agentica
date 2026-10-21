@@ -132,3 +132,19 @@ export const CATEGORY_GUIDANCE: Record<string, { what: string; why: string; what
     whatNow: 'Fill in the provider fields below and test the connection.',
   },
 }
+
+/**
+ * Prototype-safe lookup for CATEGORY_GUIDANCE. The category arrives from the
+ * API, so a key like "__proto__" or "constructor" must not resolve to an
+ * inherited object (Object.prototype would be truthy and render nonsense);
+ * only own keys of the guidance map are trusted. Missing or unknown keys
+ * return undefined so the caller shows its neutral fallback copy.
+ */
+export function categoryGuidance(
+  category: string | null | undefined,
+): (typeof CATEGORY_GUIDANCE)[string] | undefined {
+  const key = category ?? 'not_configured'
+  return Object.prototype.hasOwnProperty.call(CATEGORY_GUIDANCE, key)
+    ? CATEGORY_GUIDANCE[key]
+    : undefined
+}

@@ -3,6 +3,11 @@ import type { Execution, ExecutionEvent } from '../api/types'
 import { getExecution, getEvents } from '../api/client'
 import { Loading, ErrorCard, StatusBadge } from '../components/ui'
 import PlanSection from '../components/PlanSection'
+import { allowlistedClass } from '../lib/classSuffix'
+
+// Event severities recorded by the backend serializer (see
+// app/execution/events.py); anything else renders the neutral base class.
+const EVENT_SEVERITIES = ['info', 'warning', 'error'] as const
 
 type ApiError = Error & { why?: string; recovery?: string }
 
@@ -141,7 +146,12 @@ export default function ExecutionDetail({ id }: { id: string }) {
         ) : (
           <ol className="timeline">
             {events.map((e) => (
-              <li key={e.event_id} className={`timeline__item timeline__item--${e.severity}`}>
+              <li
+                key={e.event_id}
+                className={allowlistedClass(
+                  'timeline__item', 'timeline__item--', EVENT_SEVERITIES, e.severity,
+                )}
+              >
                 <span className="timeline__time">
                   {new Date(e.timestamp).toLocaleTimeString()}
                 </span>

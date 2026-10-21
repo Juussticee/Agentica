@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getServices, type ServiceState, type ServiceStatus } from '../api/dashboard'
 import { Loading, ErrorCard, Empty } from '../components/ui'
+import { allowlistedClass } from '../lib/classSuffix'
 
 const STATE_LABEL: Record<ServiceState, string> = {
   running: 'Running',
@@ -13,8 +14,9 @@ const STATE_LABEL: Record<ServiceState, string> = {
 }
 
 export function ServiceBadge({ state }: { state: ServiceState }) {
+  // Service state is API data: class suffix only via the label map's keys.
   return (
-    <span className={`badge svc-badge svc-badge--${state}`}>
+    <span className={allowlistedClass('badge svc-badge', 'svc-badge--', Object.keys(STATE_LABEL), state)}>
       {STATE_LABEL[state] ?? state}
     </span>
   )

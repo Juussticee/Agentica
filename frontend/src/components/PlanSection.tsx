@@ -1,4 +1,5 @@
 import type { ExecutionPlan, PlanTask } from '../api/types'
+import { allowlistedClass } from '../lib/classSuffix'
 
 const STATUS_ICONS: Record<string, string> = {
   pending: '○',
@@ -14,13 +15,23 @@ function PlanTaskRow({ task }: { task: PlanTask }) {
     task.capability_label ??
     (task.capability ? `Capability: ${task.capability}` : task.capability)
   const deps = (task.depends_on ?? []).filter(Boolean)
+  // Task status is API data (open string at runtime): map it to classes only
+  // via the known-status icon map; unknown values use the neutral base class.
+  const statusClass = allowlistedClass(
+    'plan-task', 'plan-task--', Object.keys(STATUS_ICONS), task.status,
+  )
   return (
-    <li className={`plan-task plan-task--${task.status}`}>
+    <li className={statusClass}>
       <div className="plan-task__head">
         <span className="plan-task__icon" aria-hidden="true">
           {STATUS_ICONS[task.status] ?? '○'}
         </span>
-        <span className={`plan-task__status plan-task__status--${task.status}`}>
+        <span
+          className={allowlistedClass(
+            'plan-task__status', 'plan-task__status--',
+            Object.keys(STATUS_ICONS), task.status,
+          )}
+        >
           {task.status}
         </span>
         <code className="plan-task__id">{task.task_id}</code>

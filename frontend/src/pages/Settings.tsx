@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  CATEGORY_GUIDANCE,
   STATE_COPY,
+  categoryGuidance,
   deleteAiSettings,
   getAiSettings,
   putAiSettings,
@@ -10,11 +10,19 @@ import {
   type AiTestResult,
 } from '../api/aiSettings'
 import { Button, ErrorCard } from '../components/ui'
+import { allowlistedClass } from '../lib/classSuffix'
 
-function ReadinessBadge({ state }: { state: AiTestResult['state'] }) {
-  const copy = STATE_COPY[state]
+// Neutral copy for a state value this interface does not recognise (the
+// state is API data, so it can change independently of this UI).
+const UNKNOWN_STATE_COPY = {
+  label: 'Unknown state',
+  detail: 'The service returned a state this screen does not recognise. See the step results below.',
+}
+
+export function ReadinessBadge({ state }: { state: AiTestResult['state'] }) {
+  const copy = STATE_COPY[state] ?? UNKNOWN_STATE_COPY
   return (
-    <div className={`ai-state ai-state--${state}`}>
+    <div className={allowlistedClass('ai-state', 'ai-state--', Object.keys(STATE_COPY), state)}>
       <strong>{copy.label}</strong>
       <p className="muted">{copy.detail}</p>
     </div>
@@ -36,10 +44,11 @@ function PhaseList({ phases }: { phases: AiTestResult['phases'] }) {
   )
 }
 
-function FailureGuidance({ result }: { result: AiTestResult }) {
+export function FailureGuidance({ result }: { result: AiTestResult }) {
   if (result.state === 'ready') return null
-  const cat = result.category ?? 'not_configured'
-  const g = CATEGORY_GUIDANCE[cat]
+  // Prototype-safe lookup: the category is API data, so keys like
+  // "__proto__" must resolve to the neutral fallback copy above.
+  const g = categoryGuidance(result.category)
   if (!g) return (
     <p className="muted">The check did not finish successfully. See the step results.</p>
   )

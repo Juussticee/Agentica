@@ -9,31 +9,7 @@ import Services from './pages/Services'
 import Agents from './pages/Agents'
 import TasksSequence from './pages/TasksSequence'
 import Settings from './pages/Settings'
-
-type View =
-  | { name: 'dashboard' }
-  | { name: 'new' }
-  | { name: 'executions' }
-  | { name: 'detail'; id: string }
-  | { name: 'services' }
-  | { name: 'agents' }
-  | { name: 'tasks' }
-  | { name: 'settings' }
-
-// Hash routing keeps the multi-view shell testable without a router dependency.
-function viewFromHash(): View {
-  const h = window.location.hash.replace(/^#\/?/, '')
-  if (h.startsWith('executions/')) {
-    return { name: 'detail', id: decodeURIComponent(h.slice('executions/'.length)) }
-  }
-  if (h === 'executions') return { name: 'executions' }
-  if (h === 'new') return { name: 'new' }
-  if (h === 'services') return { name: 'services' }
-  if (h === 'agents') return { name: 'agents' }
-  if (h === 'tasks') return { name: 'tasks' }
-  if (h === 'settings') return { name: 'settings' }
-  return { name: 'dashboard' }
-}
+import { viewFromHash, type View } from './lib/routes'
 
 export default function App() {
   const [view, setView] = useState<View>(() => viewFromHash())

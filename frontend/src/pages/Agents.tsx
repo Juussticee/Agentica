@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getAgentActivity, type AgentActivity } from '../api/dashboard'
 import { Loading, ErrorCard } from '../components/ui'
+import { allowlistedClass } from '../lib/classSuffix'
 
 const AGENT_NAMES: Record<string, string> = {
   supervisor: 'Understanding the request',
@@ -78,10 +79,12 @@ export default function Agents() {
   )
 }
 
-function AgentRow({ a }: { a: AgentActivity }) {
+export function AgentRow({ a }: { a: AgentActivity }) {
   const name = AGENT_NAMES[a.node] ?? a.node
   return (
-    <article className={`agent-row agent-row--${a.status}`}>
+    <article
+      className={allowlistedClass('agent-row', 'agent-row--', Object.keys(STATUS_LABEL), a.status)}
+    >
       <div className="agent-row__main">
         <strong>{name}</strong>
         <span className="agent-row__tech muted">node: {a.node}</span>
@@ -91,7 +94,7 @@ function AgentRow({ a }: { a: AgentActivity }) {
         <span className={`badge badge--${a.status === 'failed' ? 'failed'
           : a.status === 'working' ? 'running'
             : a.status === 'completed' ? 'completed' : 'queued'}`}>
-          {STATUS_LABEL[a.status]}
+          {STATUS_LABEL[a.status] ?? a.status}
         </span>
         {a.execution_id ? (
           <a href={`#/executions/${encodeURIComponent(a.execution_id)}`}>
