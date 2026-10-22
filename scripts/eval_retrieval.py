@@ -64,6 +64,8 @@ from app.config import (  # noqa: E402
     STORAGE_DIR,
 )
 
+from app import chroma_guard  # noqa: E402
+
 GOLD_PATH = PROJECT_ROOT / "benchmarks" / "rag_gold_v1.json"
 FIXTURE_DIR = PROJECT_ROOT / "benchmarks" / "rag_fixtures"
 REAL_DIR = PROJECT_ROOT / "knowledge" / "books"
@@ -451,6 +453,7 @@ def instrument_client_paths():
 
     def recording(*args, **kwargs):
         path = kwargs.get("path") or (args[0] if args else None)
+        chroma_guard.assert_store_path_allowed(path)  # fail BEFORE construction
         recorded.append(str(path))
         client = real(*args, **kwargs)
         _OPEN_CLIENTS.append(client)   # close() is idempotent per instance
@@ -504,6 +507,7 @@ def build_eval_index(temp_dir: Path, collection_name: str, doc_paths,
     from ingest_books import process_file
 
     Settings.embed_model = embed_model
+    chroma_guard.assert_store_path_allowed(temp_dir)
     client = chromadb.PersistentClient(path=str(temp_dir))
     _OPEN_CLIENTS.append(client)
     collection = client.get_or_create_collection(
@@ -578,6 +582,7 @@ def top5_rows(temp_dir: Path, collection_name: str, queries, embed_model):
     from llama_index.vector_stores.chroma import ChromaVectorStore
 
     Settings.embed_model = embed_model
+    chroma_guard.assert_store_path_allowed(temp_dir)
     client = chromadb.PersistentClient(path=str(temp_dir))
     _OPEN_CLIENTS.append(client)
     collection = client.get_collection(collection_name)
@@ -604,6 +609,11 @@ def top5_rows(temp_dir: Path, collection_name: str, queries, embed_model):
 # --------------------------------------------------------------------------
 
 def main(argv=None) -> int:
+    # Fail closed for this process: every Chroma client (including the
+    # production seam's own) is checked against the production store from
+    # here on, before construction.
+    chroma_guard.arm()
+    chroma_guard.install_persistent_client_wrapper()
     parser = argparse.ArgumentParser(description="RAG-1 retrieval baseline")
     parser.add_argument("--out", default=str(DEFAULT_OUT))
     parser.add_argument("--force", action="store_true",

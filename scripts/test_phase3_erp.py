@@ -24,6 +24,14 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+# Fail-closed Chroma isolation: arm the guard at startup so a direct
+# `python scripts\test_phase3_erp.py` run is protected exactly like a pytest
+# run.
+from app import chroma_guard  # noqa: E402
+
+chroma_guard.arm()
+chroma_guard.install_persistent_client_wrapper()
+
 from app.erp import (  # noqa: E402
     ERPAdapter,
     ERPAdapterUnavailableError,

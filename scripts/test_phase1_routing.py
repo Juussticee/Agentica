@@ -13,6 +13,14 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+# Fail-closed Chroma isolation: arm the guard at startup so a direct
+# `python scripts\test_phase1_routing.py` run is protected exactly like a
+# pytest run (no-op plan: this suite never opens Chroma itself).
+from app import chroma_guard  # noqa: E402
+
+chroma_guard.arm()
+chroma_guard.install_persistent_client_wrapper()
+
 
 def main():
     import app.graph as graph_module

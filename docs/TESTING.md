@@ -219,7 +219,7 @@ python scripts\test_phase2.py
 python scripts\test_feasibility_degradation.py
 python scripts\test_rewrite_step.py
 python scripts\test_phase3_erp.py
-env\Scripts\python.exe -m pytest scripts/test_phase4_workflow_qa.py scripts/test_phase5_qa_node.py scripts/test_phase6_routing_llm.py scripts/test_agent_architecture.py scripts/test_gui1_events.py scripts/test_api_preview.py scripts/test_gui16_settings.py scripts/test_gui5_operations.py scripts/test_phase7_planner.py scripts/test_phase8_execution.py scripts/test_books_grounding.py scripts/test_ingest_integrity.py scripts/test_citation_integrity.py scripts/test_verifier.py scripts/test_m4c_attribution.py -q
+env\Scripts\python.exe -m pytest scripts/test_phase4_workflow_qa.py scripts/test_phase5_qa_node.py scripts/test_phase6_routing_llm.py scripts/test_agent_architecture.py scripts/test_gui1_events.py scripts/test_api_preview.py scripts/test_gui16_settings.py scripts/test_gui5_operations.py scripts/test_phase7_planner.py scripts/test_phase8_execution.py scripts/test_books_grounding.py scripts/test_ingest_integrity.py scripts/test_citation_integrity.py scripts/test_verifier.py scripts/test_m4c_attribution.py scripts/test_books_grounding_paraphrase.py scripts/test_books_grounding_adversarial.py -q
 ```
 
 Full combined regression at the Phase 8 dispatcher commit:
@@ -227,11 +227,39 @@ Full combined regression at the Phase 8 dispatcher commit:
 `OLLAMA_LIVE=1` live provider test). Phase 8 adds 21 of its own tests
 (see the suite row above); all other suites are green unchanged.
 
-Current combined regression (M4C, re-run 2026-10-16):
-**383 passed, 1 skipped, 34 subtests** for the suite set in the command above
-plus `scripts/test_gui12_plan_render.py` (GUI-12) — pre-M4B baseline 299,
+Current combined regression (verified 2026-10-19, run under the fail-closed
+guard): **427 passed, 1 skipped, 52 subtests** (exit 0) for the suite set in
+the command above plus `scripts/test_gui12_plan_render.py` (GUI-12).
+Composition of this run: 383 previously documented tests + 11 tests from
+`scripts/test_books_grounding_paraphrase.py` + 33 tests from
+`scripts/test_books_grounding_adversarial.py`; the subtest count reconciles
+to 34 existing subtests + 18 adversarial subtests. The single skip is the
+documented `OLLAMA_LIVE=1` opt-in. These are the verified results FOR THAT
+RUN, not a guarantee that every future run produces the same count.
+Scope caveats that travel with the number: the batch ran against the WORKING
+TREE, which includes uncommitted guard/isolation and M5 self-refusal
+recovery work that is NOT part of commit `55e599d`; a separate clean-checkout
+run OF that commit verified its four committed grounding suites (90 passed,
+26 subtests, exit 0) — the full 427-test batch was not run against a clean
+checkout of `55e599d`. Prior documented baseline (M4C, re-run 2026-10-16):
+383 passed, 1 skipped, 34 subtests — pre-M4B baseline 299,
 M4B-H baseline 348 (both historical); the M4B/M4B-H suite is the 49 and the
-M4C suite the 35 of those tests listed in section C. Verification is
+M4C suite the 35 of those tests listed in section C.
+
+After ANY change to the books grounding gate in `app/agents/books_agent.py`
+(`_support_tokens` normalization, `_PARAPHRASE_GROUPS`,
+`_sentence_covered`, the polarity / numeric / citation gates), run the three
+grounding suites FIRST — `scripts/test_books_grounding.py`,
+`scripts/test_books_grounding_paraphrase.py`,
+`scripts/test_books_grounding_adversarial.py` — then the full combined
+regression above. The adversarial suite deliberately PINS current
+limitations (cross-passage / cross-sentence splicing, the family-3 subject
+swap): a change that flips one of those pins must be a deliberate, reviewed
+redesign (see `docs/GROUNDING_DIRECTIONAL_ALIASES_DESIGN.md`), never an
+accident. All of these runs stay under the fail-closed Chroma guard of
+section F — production-store access is rejected by construction, and
+`scripts/check_chroma.py` is not part of this regression (manual,
+unarmed, never run automatically). Verification is
 opt-in (`BOOKS_VERIFIER=local`; the default `off` keeps byte-identical M3
 behavior); the deterministic benchmark (38 cases, three layers per case)
 is green on both drift gates (all 38 baseline MATCH + all 38 integrated
@@ -303,3 +331,107 @@ Interactive mode: `python main.py` (empty line or Ctrl+C quits).
 | Gemini quota exhausted mid-question | run after 429s start | `main.py` catches `GoogleRateLimitError` and prints a quota message instead of a traceback |
 | ERP adapter unavailable / timeout / permission denied | stub adapter raising the matching `ERPError` subclass (see `TestAgentErrorPaths` in `scripts/test_phase3_erp.py`) | fixed safe user message per category ("currently unavailable", "timed out", "insufficient permissions"); exception details never reach the answer; log line carries `error_category=<category>` |
 | ERP unexpected failure | stub adapter raising a non-ERP `Exception` | "An unexpected error occurred while accessing the ERP."; logged as `error_category=unexpected_failure` |
+
+## F. Production Chroma store isolation (fail-closed guard)
+
+After the RAG-1 closeout regression (`df3e683`) passed all suites while
+`storage/chroma.sqlite3` changed bytes unexpectedly, test/eval access to the
+production store now **fails closed**. Root-cause status of that mutation:
+**likely, NOT confirmed** (no content-level store verification has ever been
+permitted; see the investigation report).
+
+### How isolation is enforced
+
+`app/chroma_guard.py` is the single shared guard. Every check runs *before*
+any client is constructed; paths are normalized with `realpath` + `normcase`,
+so relative, absolute, `..`-mixed, symlinked, and case-different spellings
+all compare equal. The production root `storage/` (and anything inside it)
+raises `ProductionStoreAccessError`; any other path that is neither the
+system temp dir nor a configured disposable root raises `ChromaGuardError`.
+
+Enforcement points (every known persistent-client construction path):
+
+1. `app/agents/books_agent.py::_get_query_engine` — explicit check as the
+   first statement of the lazy singleton, before any Settings work or client
+   construction.
+2. `ingest_books.py::_build_index` — the ingestion entry point (also used by
+   the eval's per-file `process_file` path).
+3. `scripts/check_chroma.py::main` — guarded, but manual runs are unarmed
+   and behave exactly as before (the script itself is still never run
+   automatically).
+4. `scripts/eval_retrieval.py` — `main()` arms the guard first, and checks
+   sit in the instrumented `PersistentClient` recording wrapper plus both
+   temp-store constructors.
+5. `scripts/conftest.py` — pytest imports it before any test module, arms
+   the guard process-wide and wraps `chromadb.PersistentClient`,
+   `chromadb.Client`, and `chromadb.AdminClient`, so *direct* construction
+   anywhere in a test — including a module-level import-time initializer —
+   is rejected pre-construction.
+6. The documented standalone scripts (`test_phase1_routing`, `test_phase2`,
+   `test_feasibility_degradation`, `test_rewrite_step`, `test_phase3_erp`,
+   `test_agent_architecture`) arm + wrap at startup so
+   `env\Scripts\python.exe scripts\<name>.py` is protected like pytest.
+
+Activation: pytest (`conftest` hook / `PYTEST_CURRENT_TEST`), an explicit
+`chroma_guard.arm()`, or `AGENTICA_CHROMA_GUARD` set to **any** value
+(including `""` — ambiguous configuration arms, never bypasses). There is no
+disable switch. Outside test execution every check is a no-op: normal app,
+ingest-CLI, and manual-diagnostic behavior is unchanged.
+
+### Configuring disposable test stores
+
+- System temp directory (`tempfile.gettempdir()` / `mkdtemp` /
+  `TemporaryDirectory`) is implicitly allowed.
+- `AGENTICA_TEST_STORAGE_DIRS` lists additional roots, `os.pathsep`-separated
+  (e.g. `C:\Temp;D:\scratch`). Set-but-empty/blank raises
+  `ChromaGuardConfigError` before *any* path is allowed (fail closed).
+- No configuration at all means: production always blocked, temp allowed,
+  everything else blocked.
+
+### Running the isolation tests
+
+```bat
+env\Scripts\python.exe -m pytest scripts/test_chroma_isolation.py -q
+:: 15 passed, 1 skipped (Windows symlink-privilege variant), 7 subtests, exit 0
+```
+
+Offline by construction: no Ollama, no network, no production Chroma. The
+suite proves rejection precedes construction (against a recording
+constructor double), equivalent-path rejection, temp/configured-path
+permission, lazy-engine and import-time protection, mocked-engine
+continuity, config fail-closed behavior, and that rejected attempts leave
+the protected files byte- and mtime-identical (filesystem hashing only).
+
+### What the guard does and does not guarantee
+
+Guarantees: in an armed run no known persistent-client path can pass a
+production or unknown path to chromadb — tests fail fast with an actionable
+error instead of mutating the store; unarmed production runs are
+behaviorally unchanged.
+
+Does NOT guarantee: the earlier mutation's root cause (status: **likely,
+unconfirmed**); protection of invocations that are neither pytest nor a
+bootstrapped script nor `AGENTICA_CHROMA_GUARD=1`; anything about raw
+sqlite3 writers (the guard covers chromadb constructors only); or logical
+integrity of the production store (never content-verified).
+
+### Suites unsafe/unverified after this change
+
+- `test_agent_architecture.py::TestAgentContract::
+  test_books_agent_returns_only_changed_keys` originally called the REAL
+  `books_agent` without mocking `_get_query_engine` and was the single most
+  likely writer of the earlier store change. Under the guard it failed fast
+  with `ProductionStoreAccessError` (fail-closed, as designed); it has since
+  been repaired to inject a deterministic fake at the lookup site and to
+  assert the Chroma constructor is never reached — the changed-keys contract
+  assertion is unchanged, and the suite is 30 passed.
+- The full documented pytest batch HAS been re-run under the guard:
+  **383 passed, 1 skipped, 34 subtests** (exit 0), matching this file's
+  documented baseline at that time (superseded by the 427-test current
+  baseline recorded in section C above).
+- Live suites (`test_phase1_e2e`, `test_phase1_proxy`, `check_books_agent`,
+  `probe_books_prompt`, `demo_rewrite_quality`) remain opt-in/network-bound;
+  under pytest they would fail closed if they reach the production engine.
+- Environment note: run documented scripts with `env\Scripts\python.exe`;
+  the bare `python` on PATH in this environment lacks `langgraph`/`chromadb`,
+  and the guard's wrapper self-skips when chromadb is not installed.

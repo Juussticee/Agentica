@@ -24,7 +24,7 @@ from llama_index.core.llms import (
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
 
-from app import verifier
+from app import chroma_guard, verifier
 from app.config import (
     BOOKS_MIN_SCORE,
     BOOKS_TOP_K,
@@ -740,6 +740,9 @@ def _get_query_engine():
     if _query_engine is None:
         import chromadb
 
+        # Fail BEFORE any open: an armed test/eval context must never reach
+        # the production store (no-op in normal production operation).
+        chroma_guard.assert_store_path_allowed(STORAGE_DIR)
         # Bridge the single get_llm() factory into LlamaIndex — otherwise
         # LlamaIndex would silently default to OpenAI (wrong provider, no key).
         Settings.llm = _GetLlmBridge()

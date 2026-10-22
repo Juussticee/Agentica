@@ -50,6 +50,7 @@ from llama_index.core import (
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
 
+from app import chroma_guard
 from app.config import (
     BOOKS_DIR,
     CHROMA_COLLECTION,
@@ -588,6 +589,9 @@ def _build_index(storage_dir, collection_name, embed_model):
     """Persisted index + raw Chroma collection (for verified per-file counts)."""
     import chromadb
 
+    # Fail BEFORE any open: an armed test/eval context must never build an
+    # index on the production store (no-op in normal production operation).
+    chroma_guard.assert_store_path_allowed(storage_dir)
     Settings.embed_model = embed_model
     client = chromadb.PersistentClient(path=str(storage_dir))
     collection = client.get_or_create_collection(

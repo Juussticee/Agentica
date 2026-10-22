@@ -20,6 +20,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.config import CHROMA_COLLECTION, INDEX_MANIFEST, STORAGE_DIR  # noqa: E402
+from app.chroma_guard import assert_store_path_allowed  # noqa: E402
 from ingest_books import STATUS_FAILED, STATUS_INDEXED, STATUS_PARTIAL  # noqa: E402
 
 
@@ -54,6 +55,9 @@ def _stored_count(col, path_key: str) -> int:
 def main() -> int:
     import chromadb
 
+    # Read-only diagnostic, but still fail BEFORE any open when the guard is
+    # armed (a manual run is unarmed and behaves exactly as before).
+    assert_store_path_allowed(STORAGE_DIR)
     errors, warnings = [], []
     client = chromadb.PersistentClient(path=str(STORAGE_DIR))
     print("collections:", [c.name for c in client.list_collections()])

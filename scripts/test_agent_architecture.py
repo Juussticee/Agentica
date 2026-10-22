@@ -14,10 +14,22 @@ Verifies the standardization that makes future agents small and predictable:
 import sys
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+# Fail-closed Chroma isolation: arm the guard at startup so a direct
+# `python scripts\test_agent_architecture.py` run is protected exactly like
+# a pytest run. NOTE: any test that calls the REAL books_agent without
+# mocking its query engine now fails fast here instead of opening the
+# production store (see docs/TESTING.md section F).
+from app import chroma_guard  # noqa: E402
+
+chroma_guard.arm()
+chroma_guard.install_persistent_client_wrapper()
 
 import app.agents.erp_agent as erp_agent_mod  # noqa: E402
 import app.agents.feasibility_agent as fa_mod  # noqa: E402
@@ -90,8 +102,32 @@ class TestAgentContract(unittest.TestCase):
         self.assertEqual(set(update.keys()), {"answer", "sources", "agent_answers"})
 
     def test_books_agent_returns_only_changed_keys(self):
+        # Chroma isolation (docs/TESTING.md §F): this contract is the
+        # changed-keys return shape, NOT retrieval — inject a deterministic
+        # fake at the lazy-engine lookup site (_get_query_engine) so the
+        # production store can never open, and assert the real Chroma
+        # constructor is never reached.
         bind_agent_llm(books_agent)
-        update = books_agent.books_agent(make_state())
+
+        class _Resp:
+            # Deterministic refusal-style answer: exercises the agent's
+            # early-return path and terminates in with_agent_output.
+            def __str__(self):
+                return (f"{books_agent.NOT_FOUND_PHRASE} "
+                        f"(best similarity score 0.61)")
+
+        engine = SimpleNamespace(query=lambda _q: _Resp())
+        with mock.patch.object(books_agent, "_get_query_engine",
+                               return_value=engine), \
+                mock.patch(
+                    "chromadb.PersistentClient",
+                    side_effect=AssertionError(
+                        "production Chroma constructor must not be "
+                        "reached from this contract test")) as ctor:
+            update = books_agent.books_agent(make_state())
+        self.assertEqual(
+            ctor.call_count, 0,
+            "books contract test must never construct a Chroma client")
         expected = {"answer", "sources", "agent_answers"}
         self.assertEqual(set(update.keys()), expected)
 
