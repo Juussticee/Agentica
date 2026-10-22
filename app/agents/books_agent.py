@@ -878,6 +878,109 @@ def _verify_claims(claims: list, source_nodes: list):
     return retained, notes, n_unavailable
 
 
+# --- M5: bounded recovery from a pure model self-refusal ------------------
+# A small instruction-tuned model can emit the mandated not-found phrase
+# even when the retrieved passages DO cover the question (observed live:
+# score 0.78, on-topic corpus, refusal). This is response SHAPE, not an
+# evidence judgment — so when the refusal is provably a self-refusal (good
+# score, real nodes, question topically covered by the evidence), the agent
+# regenerates ONCE from the SAME retrieved passages and re-runs the result
+# through the unchanged grounding/polarity/numeric/citation gates below.
+#
+# Deliberate bounds (each one is a contract, not a tunable):
+#   * at most ONE extra generation — a second refusal abstains immediately,
+#     there is no third attempt and no retry loop anywhere;
+#   * eligibility requires a pure `_refusal_only` response, non-empty
+#     source nodes with text, score >= BOOKS_MIN_SCORE, and deterministic
+#     question-to-evidence topical coverage — empty retrieval, exceptions,
+#     low score and ordinary grounding failures NEVER reach this path;
+#   * the retry prompt is built from the ORIGINAL source nodes' real text
+#     via `_claim_evidence` (the audited, file_path-free, size-bounded
+#     evidence builder) — never reconstructed or fabricated passages, and
+#     no second retrieval cycle;
+#   * the recovered text is untrusted model output exactly like the first
+#     answer: citations stripped, then `_grounded_repair` (token support,
+#     polarity, numeric provenance, metadata citation gates) and the
+#     optional verifier all run unchanged — recovery can only surface
+#     content that the normal gates already accept.
+# Honest limit: topical COVERAGE is not entailment. It only decides whether
+# ONE regeneration is worth attempting; what may be SAID stays gated.
+_RECOVERY_MIN_COVERAGE = 0.5
+
+_RECOVERY_PROMPT = (
+    "Context information is below.\n"
+    "---------------------\n"
+    "{context}\n"
+    "---------------------\n"
+    "The passages above are the retrieved evidence for the question below. "
+    "Answer the question directly using ONLY the passages above. Do not use "
+    "outside knowledge. Never invent figures, explanations, or conclusions. "
+    "A previous answer declined to answer; that declination is not evidence "
+    "— decide from the passages themselves what they actually state.\n"
+    "If the passages genuinely do not support the question at all, reply "
+    f"with exactly: {NOT_FOUND_PHRASE}\n"
+    "Question: {question}\n"
+    "Answer: "
+)
+
+
+def _question_covered_by_evidence(question: str, source_nodes: list) -> bool:
+    """Deterministic question-to-evidence TOPICAL coverage (M5 eligibility).
+
+    True when at least half of the question's own content tokens (same
+    `_support_tokens` normalization as the grounding gate; numbers must
+    match literally) occur in the retrieved passages' text or their
+    allowlisted citation metadata, with word-level relief through the
+    existing `_PARAPHRASE_GROUPS` only. Topicality screen for whether ONE
+    regeneration is worth attempting — never proof that the evidence
+    ANSWERS the question (that stays `_grounded_repair`'s job).
+    """
+    q_toks = _support_tokens(question)
+    if not q_toks:
+        return False
+    corpus = set()
+    for node in source_nodes:
+        corpus |= _support_tokens(getattr(node, "text", "") or "")
+        meta = getattr(node, "metadata", None)
+        if isinstance(meta, dict):
+            corpus |= _metadata_tokens(meta)
+    if not corpus or not any(
+            _support_tokens(getattr(n, "text", "") or "")
+            for n in source_nodes):
+        return False            # empty retrieval: metadata alone is no
+        # usable evidence, so a regeneration could only ever re-refuse.
+    covered = 0
+    for tok in q_toks:
+        if tok in corpus:
+            covered += 1
+        elif not tok.isdigit() and any(
+                tok in group and not group.isdisjoint(corpus)
+                for group in _PARAPHRASE_GROUPS):
+            covered += 1
+    return covered * 2 >= len(q_toks)
+
+
+def _self_refusal_retry(question: str, source_nodes: list) -> str | None:
+    """The ONE bounded regeneration for an eligible pure self-refusal.
+
+    Returns the stripped model text, or None on any failure (invoke error,
+    non-text output). Never logs the prompt, the passages, or the response;
+    never retrieves again; never raises.
+    """
+    blocks = _claim_evidence(
+        {"nodes": [i for i, n in enumerate(source_nodes)
+                   if str(getattr(n, "text", "") or "").strip()]},
+        source_nodes)
+    if not blocks:
+        return None
+    context = "\n\n".join(block["text"] for block in blocks)
+    prompt = _RECOVERY_PROMPT.format(context=context, question=question)
+    try:
+        return str(llm_text(get_llm().invoke(prompt)) or "").strip()
+    except Exception:
+        return None
+
+
 def books_agent(state: AgentState) -> dict:
     question = state.get("question", "")
     start = time.perf_counter()
@@ -900,6 +1003,29 @@ def books_agent(state: AgentState) -> dict:
     # cannot slip through and pick up a references footer (spec section 2.1:
     # a refusal-only response presents no evidence, so it cites none).
     refusal = bool(answer_text) and _refusal_only(answer_text)
+
+    # M5: exactly one bounded regeneration for a provable pure self-refusal
+    # (never for empty output, low score, exceptions, or grounding failures).
+    if (refusal and score is not None and score >= BOOKS_MIN_SCORE
+            and source_nodes
+            and _question_covered_by_evidence(question, source_nodes)):
+        print(f"[books_agent] self_refusal_recovery_attempted "
+              f"(score={score}, nodes={len(source_nodes)})")
+        recovered = _self_refusal_retry(question, source_nodes)
+        if recovered:
+            recovered = _strip_model_citations(recovered)
+        if recovered and not _refusal_only(recovered):
+            # Re-enter the UNCHANGED downstream path: _grounded_repair
+            # (support/polarity/numeric/citation gates) and the optional
+            # verifier still decide what may be said.
+            answer_text, refusal = recovered, False
+            print(f"[books_agent] self_refusal_recovery_succeeded "
+                  f"(chars={len(recovered)})")
+        else:
+            reason = ("second_refusal" if recovered else "empty_or_error")
+            print(f"[books_agent] self_refusal_recovery_rejected "
+                  f"(reason={reason}, score={score})")
+
     if not answer_text or low_confidence or refusal:
         # Spec: never invent — say explicitly it is not in the books, using
         # the mandated refusal phrase, WITHOUT a references footer.
