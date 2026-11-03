@@ -1,4 +1,12 @@
-import type { Execution, ExecutionEvent, Health } from './types'
+import type {
+  ApprovalDecisionResponse,
+  ApprovalQueue,
+  ApprovalResumeResponse,
+  ApprovalRequest,
+  Execution,
+  ExecutionEvent,
+  Health,
+} from './types'
 
 const BASE = '/api/v1'
 
@@ -45,6 +53,37 @@ export async function getEvents(id: string, after = 0): Promise<{
   count: number
 }> {
   const res = await fetch(`${BASE}/executions/${encodeURIComponent(id)}/events?after=${after}`)
+  if (!res.ok) await handleError(res)
+  return res.json()
+}
+
+export async function listApprovals(status = 'pending'): Promise<ApprovalQueue> {
+  const res = await fetch(`${BASE}/approvals?status=${encodeURIComponent(status)}`)
+  if (!res.ok) await handleError(res)
+  return res.json()
+}
+
+export async function getApproval(approvalId: string): Promise<{ approval: ApprovalRequest }> {
+  const res = await fetch(`${BASE}/approvals/${encodeURIComponent(approvalId)}`)
+  if (!res.ok) await handleError(res)
+  return res.json()
+}
+
+export async function decideApproval(
+  approvalId: string,
+  decision: 'approve' | 'reject',
+): Promise<ApprovalDecisionResponse> {
+  const res = await fetch(`${BASE}/approvals/${encodeURIComponent(approvalId)}/${decision}`, {
+    method: 'POST',
+  })
+  if (!res.ok) await handleError(res)
+  return res.json()
+}
+
+export async function resumeApproval(approvalId: string): Promise<ApprovalResumeResponse> {
+  const res = await fetch(`${BASE}/approvals/${encodeURIComponent(approvalId)}/resume`, {
+    method: 'POST',
+  })
   if (!res.ok) await handleError(res)
   return res.json()
 }

@@ -24,7 +24,7 @@ afterEach(cleanup)
 const EVIL = '"><img src=x onerror=window.__pwned=1>'
 
 describe('StatusBadge allowlist (F2)', () => {
-  const valid = ['queued', 'running', 'completed', 'failed', 'cancelled'] as const
+  const valid = ['queued', 'running', 'completed', 'failed', 'cancelled', 'waiting_for_approval'] as const
   it.each(valid)('keeps the existing badge--%s styling', (s) => {
     const { container } = render(<StatusBadge status={s} />)
     expect(container.querySelector('span')).toHaveClass('badge', `badge--${s}`)

@@ -1,0 +1,328 @@
+/* =========================================================================
+   Control Center surfaces (2026-10-30)
+
+   Styles for the management pages that were added on top of the existing
+   dashboard: overview tiles, the agent catalog, skills, memory, and the
+   execution filter toolbar. Everything is expressed with the tokens already
+   declared in index.css so the two files cannot drift apart visually.
+   ========================================================================= */
+
+/* --- Overview tiles --------------------------------------------------- */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+}
+.tile:hover { border-color: var(--primary); }
+.tile:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.tile__value { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tile__label { font-size: 13px; font-weight: 600; }
+.tile__hint { font-size: 12px; color: var(--muted); }
+
+/* --- Key/value lists -------------------------------------------------- */
+.kv { margin: 8px 0 0; font-size: 13px; display: grid; gap: 6px; }
+.kv > div,
+.kv__row { display: grid; grid-template-columns: minmax(110px, 180px) 1fr; gap: 10px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; word-break: break-word; }
+
+.plain-list { margin: 6px 0 12px; padding-left: 18px; font-size: 13px; line-height: 1.6; }
+.plain-list li { margin: 2px 0; }
+
+.mono-small { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
+
+/* --- Filter toolbar --------------------------------------------------- */
+.toolbar { display: flex; align-items: flex-end; gap: 10px; margin: 14px 0; flex-wrap: wrap; }
+.toolbar--wrap { flex-wrap: wrap; }
+.toolbar .field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.toolbar .field--grow { flex: 1 1 220px; min-width: 180px; }
+.toolbar select,
+.toolbar input {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+}
+.toolbar__search {
+  flex: 1 1 200px;
+  min-width: 160px;
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--panel);
+}
+.segmented__item {
+  font: inherit;
+  font-size: 12px;
+  padding: 7px 11px;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.segmented__item:last-child { border-right: none; }
+.segmented__item:hover { background: var(--bg); }
+.segmented__item.active { background: var(--primary); color: #fff; }
+
+/* --- Summary tiles (skills) ------------------------------------------- */
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+.summary-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.summary-tile__value { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.summary-tile__label { font-size: 12px; color: var(--muted); }
+
+/* --- Agents ----------------------------------------------------------- */
+.agents__intro { max-width: 110ch; }
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  margin-top: 6px;
+}
+.agent-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  min-width: 0;
+}
+.agent-card--selected { border-left-color: var(--primary); }
+.agent-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.agent-card__head h3 { margin: 0; font-size: 15px; }
+.agent-card__id { font-size: 11px; color: var(--muted); }
+.agent-card__resp { margin: 0; font-size: 13px; line-height: 1.5; }
+.agent-card__reason { margin: 0; }
+.agent-card__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+}
+.agent-card__facts dt { color: var(--muted); font-size: 11px; }
+.agent-card__facts dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.agent-card__recent { margin: 0; overflow-wrap: anywhere; }
+.agent-card .btn { align-self: flex-start; }
+
+.agent-detail__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.agent-detail__head h2 { margin: 0 0 2px; }
+.agent-detail__head-actions { display: flex; align-items: center; gap: 8px; }
+.agent-detail__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 8px;
+}
+.agent-detail__grid h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin: 14px 0 4px; }
+.agent-detail__grid h3:first-child { margin-top: 0; }
+.agent-detail__grid p { margin: 0 0 6px; font-size: 13px; line-height: 1.55; }
+
+/* Approval Center header: the title block and the refresh button had no layout
+   rule, so the button sat inline and pushed the page 31px wide on a phone. */
+.approval-page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.approval-page-head > div { flex: 1 1 260px; min-width: 0; }
+.approval-page-head > div > p { max-width: 90ch; }
+
+/* The status filter row lives outside a .card, so it missed the existing
+   mobile wrap rule and pushed the page wide on a phone. */
+.approval-filters { flex-wrap: wrap; }
+
+/* Live-activity rows keep their existing .agent-row styles from index.css;
+   this only stacks them. */
+.agent-rows { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+
+/* --- Skills ----------------------------------------------------------- */
+.skills__intro { max-width: 110ch; }
+.skill-list { display: flex; flex-direction: column; gap: 0; }
+.skill-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.skill-card__head h2 { margin: 0 0 2px; }
+.skill-card p { font-size: 13px; line-height: 1.55; }
+
+/* --- Learning --------------------------------------------------------- */
+.lesson-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.lesson-card__head h3 { margin: 0 0 2px; font-size: 15px; }
+.lesson-card__revision {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 6px 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+
+/* --- Learning impact evaluation --------------------------------------- */
+.eval__meta { margin: 6px 0 10px; font-size: 12px; }
+.eval__command {
+  margin-top: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  overflow-x: auto;
+  white-space: pre;
+}
+.eval__table { overflow-x: auto; }
+.eval__table .table { min-width: 560px; }
+.eval__regressions { margin: 6px 0 14px; padding-left: 18px; font-size: 13px; }
+.eval__regressions li { margin-bottom: 5px; }
+.eval__notes { margin-top: 10px; font-size: 12px; }
+.eval__notes ul { margin: 6px 0 0; padding-left: 18px; }
+
+/* Calibration (2026-10-30): the classification badges under a lesson title
+   wrap instead of widening the card. */
+.lesson-card__badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.metric-worse { color: #b91c1c; font-weight: 600; }
+
+/* --- Memory ----------------------------------------------------------- */
+.memory__intro { max-width: 110ch; }
+.memory-section__head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.memory-section__head h2 { margin: 0; }
+.memory-section p { font-size: 13px; line-height: 1.55; }
+.memory-provenance { margin-top: 10px; font-size: 12px; }
+
+/* --- Learning --------------------------------------------------------- */
+.lesson-card { margin-bottom: 12px; }
+.lesson-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.lesson-card__head h3 { margin: 0 0 4px; font-size: 15px; line-height: 1.4; }
+.lesson-card__evidence { margin-top: 8px; font-size: 13px; }
+.lesson-card__evidence ul { margin: 8px 0 0 18px; padding: 0; }
+.lesson-card__evidence li { margin-bottom: 10px; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+.check-list { list-style: none; padding: 0; margin: 8px 0; font-size: 13px; }
+.check-list li { margin-bottom: 4px; }
+.check-list .ok { color: #047857; font-weight: 700; }
+.check-list .fail { color: #b91c1c; font-weight: 700; }
+.badge--partial { background: #fefce8; color: #a16207; border: 1px solid #fde68a; }
+.badge--unknown { background: #f1f5f9; color: #475569; border: 1px solid var(--border); }
+
+/* --- Availability / memory status badges ------------------------------ */
+.badge--available { background: var(--ok-bg); color: #047857; border: 1px solid var(--ok-border); }
+.badge--unavailable { background: var(--err-bg); color: #b91c1c; border: 1px solid #fecaca; }
+.badge--disabled { background: #f1f5f9; color: #475569; border: 1px solid var(--border); }
+.badge--empty { background: #f8fafc; color: #64748b; border: 1px solid var(--border); }
+.badge--not_implemented { background: #fefce8; color: #a16207; border: 1px dashed #fde68a; }
+
+/* --- Timeline severity ------------------------------------------------ */
+.timeline__item--warning .timeline__msg { color: #b45309; font-weight: 600; }
+
+/* =========================================================================
+   Dark theme
+
+   The panels were authored light-only: the palette lives in :root tokens, so
+   the theme is a token override plus the handful of surfaces that were
+   hardcoded. It follows the operating system preference (there is no manual
+   toggle in the UI), and every selectable value keeps a light-mode fallback.
+   ========================================================================= */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #0b1220;
+    --panel: #111a2e;
+    --border: #26324a;
+    --text: #e6edf7;
+    --muted: #94a3b8;
+    --primary: #3b82f6;
+    --primary-dark: #60a5fa;
+    --ok-bg: #0f2a22;
+    --ok-border: #1f5f4b;
+    --err-bg: #2a1418;
+  }
+  body { background: var(--bg); color: var(--text); }
+
+  .badge--queued { background: #1e293b; color: #cbd5e1; }
+  .badge--running { background: #172a4a; color: #93c5fd; }
+  .badge--completed { background: var(--ok-bg); color: #6ee7b7; }
+  .badge--failed { background: var(--err-bg); color: #fca5a5; }
+  .badge--cancelled { background: #1e293b; color: #94a3b8; }
+  .badge--waiting_for_approval { background: #2c2410; color: #fcd34d; border-color: #7c5a12; }
+  .badge--available { color: #6ee7b7; }
+  .badge--unavailable { color: #fca5a5; }
+  .badge--disabled { background: #1e293b; color: #94a3b8; }
+  .badge--empty { background: #16203a; color: #94a3b8; }
+  .badge--not_implemented { background: #2c2410; color: #fcd34d; border-color: #7c5a12; }
+  .badge--partial { background: #2c2410; color: #fcd34d; border-color: #7c5a12; }
+  .badge--unknown { background: #1e293b; color: #94a3b8; }
+  .check-list .ok { color: #6ee7b7; }
+  .check-list .fail { color: #fca5a5; }
+
+  .table th { background: #16203a; }
+  .row-click:hover { background: #17203a; }
+  .timeline__item--error .timeline__msg { color: #fca5a5; }
+  .timeline__item--warning .timeline__msg { color: #fcd34d; }
+  .plan-task__status--running { background: #172a4a; color: #93c5fd; border-color: #1e3a5f; }
+}
+
+/* --- Narrow screens --------------------------------------------------- */
+@media (max-width: 900px) {
+  .agent-detail__grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+}
+@media (max-width: 620px) {
+  .agent-grid { grid-template-columns: minmax(0, 1fr); }
+  .agent-card__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kv > div, .kv__row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .segmented { width: 100%; overflow-x: auto; }
+  .toolbar__search { flex-basis: 100%; }
+}

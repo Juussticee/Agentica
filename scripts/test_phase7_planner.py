@@ -280,6 +280,18 @@ class TestPlannerNode(unittest.TestCase):
         caps = [t["capability"] for t in result["plan"]["tasks"]]
         self.assertEqual(caps, ["research", "books", "synthesis"])
 
+    def test_every_template_objective_is_declared_generic(self):
+        # Drift guard (2026-10-29): the dispatcher scopes a planned task to its
+        # objective UNLESS the objective is a step description. Every template
+        # objective must therefore stay in GENERIC_PLAN_OBJECTIVES, otherwise a
+        # books/ERP step would be dispatched with "Check the user's book
+        # library for relevant material" as its actual question.
+        for route in ("feasibility", "erp", "books", "research", "general"):
+            plan = planner.default_plan({"question": "q", "route": route})
+            for obj in (t["objective"] for t in plan["tasks"]):
+                with self.subTest(route=route, objective=obj):
+                    self.assertIn(obj, planner.GENERIC_PLAN_OBJECTIVES)
+
     def test_node_returns_only_plan_key(self):
         with _fake_get_llm(_FakeLLM(exc=RuntimeError("down"))):
             result = planner.planner_node(DEFAULT_ROUTE_STATE)

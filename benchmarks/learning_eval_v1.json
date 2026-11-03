@@ -1,0 +1,150 @@
+{
+  "version": "learning_eval_v1",
+  "harness_version": 1,
+  "description": "Fixed A/B benchmark for Agentica's continuous-learning loop: each task runs once WITHOUT active lessons (baseline) and once WITH the applicable active lessons, through the real GraphRunner. Requirements are checked on the FINAL ANSWER, never on the prompt.",
+  "mode": "offline_deterministic",
+  "mode_note": "The provider is a scripted double (no network, no live model). It answers with the case's baseline_answer and appends the learned requirement text it was given, except for an explicit brevity directive, which it obeys by shortening. This makes the causal chain prompt -> answer -> requirement satisfaction fully deterministic. Live-model mode is a separate, labelled mode and is not used here.",
+  "lessons": [
+    {
+      "lesson_id": "fx-compare-depth",
+      "capability": "general",
+      "category": "preference",
+      "scope": "capability",
+      "problem": "Model comparisons omitted benchmark, VRAM and licensing facts.",
+      "root_cause": "The depth of a comparison was never requested.",
+      "corrective_behavior": "Include benchmark numbers, VRAM requirements and licensing terms whenever two models are compared.",
+      "validation": "Every compared model states a benchmark figure, a VRAM requirement and a licence.",
+      "confidence": 0.9,
+      "keywords": ["model", "compare", "benchmark", "vram", "licensing"]
+    },
+    {
+      "lesson_id": "fx-numbered-steps",
+      "capability": "general",
+      "category": "procedure",
+      "scope": "capability",
+      "problem": "Procedural answers were prose, hard to follow.",
+      "root_cause": "No format was requested.",
+      "corrective_behavior": "Present procedures as a numbered list: 1. define the corpus, 2. index it, 3. check citations at the end.",
+      "validation": "The answer contains numbered steps and a final check.",
+      "confidence": 0.85,
+      "keywords": ["steps", "procedure", "pipeline", "rag", "list"]
+    },
+    {
+      "lesson_id": "fx-recommendation",
+      "capability": "general",
+      "category": "preference",
+      "scope": "capability",
+      "problem": "Answers explained options without saying which to choose.",
+      "root_cause": "The user's preference was never recorded before.",
+      "corrective_behavior": "End every answer with a line 'Recommendation: ...' naming the choice and one trade-off.",
+      "validation": "The last line starts with 'Recommendation:'.",
+      "confidence": 0.9,
+      "keywords": ["recommend", "choose", "preference", "trade-off"]
+    },
+    {
+      "lesson_id": "fx-too-brief",
+      "capability": "general",
+      "category": "preference",
+      "scope": "capability",
+      "problem": "A correction asked for answers that are never longer than necessary.",
+      "root_cause": "Brevity was requested more strongly than detail.",
+      "corrective_behavior": "Answer in a single short sentence; detailed explanation is unnecessary.",
+      "validation": "The answer is one sentence.",
+      "confidence": 0.6,
+      "keywords": ["short", "brief", "concise"]
+    },
+    {
+      "lesson_id": "fx-books-format",
+      "capability": "books",
+      "category": "procedure",
+      "scope": "capability",
+      "problem": "Document answers did not cite the passage they used.",
+      "root_cause": "Citation format was not requested for document answers.",
+      "corrective_behavior": "Quote the passage identifier for every claim taken from a document.",
+      "validation": "Each document claim names a passage.",
+      "confidence": 0.9,
+      "keywords": ["document", "chapter", "passage", "cite"]
+    }
+  ],
+  "cases": [
+    {
+      "task_id": "gen-plain",
+      "capability": "general",
+      "request": "What is a vector database?",
+      "baseline_answer": "A vector database stores embeddings and lets you search them by similarity using an approximate index.",
+      "requirements": [
+        {"id": "explains-embeddings", "label": "Explains embeddings", "check": {"kind": "contains_all", "terms": ["embedding"]}},
+        {"id": "explains-index", "label": "Names the index", "check": {"kind": "contains_all", "terms": ["index"]}}
+      ],
+      "lesson_ids": [],
+      "expected_outcome": "unchanged",
+      "notes": "Control case: no applicable lesson, so both conditions must be identical."
+    },
+    {
+      "task_id": "gen-model-compare",
+      "capability": "general",
+      "request": "Compare two small embedding models for my laptop.",
+      "baseline_answer": "Both models run locally. The smaller one uses less memory and is a little less accurate.",
+      "requirements": [
+        {"id": "benchmarks", "label": "Benchmark numbers", "check": {"kind": "contains_all", "terms": ["benchmark"]}},
+        {"id": "vram", "label": "VRAM requirement", "check": {"kind": "contains_all", "terms": ["vram"]}},
+        {"id": "licensing", "label": "Licensing terms", "check": {"kind": "contains_all", "terms": ["licensing"]}}
+      ],
+      "lesson_ids": ["fx-compare-depth"],
+      "expected_outcome": "improved",
+      "notes": "The learned requirement adds exactly the facts the baseline answer omitted."
+    },
+    {
+      "task_id": "gen-procedure-format",
+      "capability": "general",
+      "request": "How should I set up a small RAG pipeline?",
+      "baseline_answer": "Start with your documents, embed them into an index, and then retrieve passages before answering.",
+      "requirements": [
+        {"id": "numbered", "label": "Numbered steps", "check": {"kind": "contains_all", "terms": ["1.", "2.", "3."]}},
+        {"id": "check", "label": "Final check step", "check": {"kind": "contains_all", "terms": ["check"]}}
+      ],
+      "lesson_ids": ["fx-numbered-steps"],
+      "expected_outcome": "improved",
+      "notes": "A learned formatting preference changes the produced answer, not just the prompt."
+    },
+    {
+      "task_id": "gen-preference",
+      "capability": "general",
+      "request": "Should I use SQLite or Postgres for a local agent?",
+      "baseline_answer": "SQLite needs no server and is easy to embed. Postgres handles concurrent writers better.",
+      "requirements": [
+        {"id": "recommendation", "label": "Explicit recommendation", "check": {"kind": "contains_all", "terms": ["recommendation:"]}}
+      ],
+      "lesson_ids": ["fx-recommendation"],
+      "expected_outcome": "improved",
+      "notes": "The user's standing preference for a recommendation line."
+    },
+    {
+      "task_id": "gen-brevity-regression",
+      "capability": "general",
+      "request": "Explain the trade-off between latency and recall in vector search.",
+      "baseline_answer": "Higher recall usually costs latency: a larger candidate list finds more true neighbours but takes longer to search. The trade-off is tuned with the index's search parameter.",
+      "requirements": [
+        {"id": "names-tradeoff", "label": "Names the trade-off", "check": {"kind": "contains_all", "terms": ["trade-off"]}},
+        {"id": "explains-latency", "label": "Explains latency cost", "check": {"kind": "contains_all", "terms": ["latency"]}},
+        {"id": "not-too-short", "label": "More than one sentence of content", "check": {"kind": "min_words", "words": 20}}
+      ],
+      "lesson_ids": ["fx-too-brief"],
+      "expected_outcome": "regression",
+      "notes": "A conflicting preference (brevity) is obeyed and drops requirements the baseline satisfied. The harness must report this as a regression, never as an improvement."
+    },
+    {
+      "task_id": "gen-unrelated-scope",
+      "capability": "general",
+      "request": "What is cosine similarity?",
+      "baseline_answer": "Cosine similarity measures the angle between two vectors, so it ignores their magnitude.",
+      "requirements": [
+        {"id": "angle", "label": "Explains the angle", "check": {"kind": "contains_all", "terms": ["angle"]}},
+        {"id": "magnitude", "label": "Mentions magnitude", "check": {"kind": "contains_all", "terms": ["magnitude"]}}
+      ],
+      "lesson_ids": ["fx-books-format"],
+      "expected_outcome": "unchanged",
+      "notes": "The only lesson in scope is for `books`; a general task must not receive it."
+    }
+  ]
+}

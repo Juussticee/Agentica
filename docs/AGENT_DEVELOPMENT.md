@@ -69,8 +69,8 @@ The contract, in full:
 
 ## 3. Registration: how a new agent plugs in
 
-Adding an agent means **five explicit steps** — there is no plugin system,
-no registry file, no dynamic discovery:
+Adding an agent means **six explicit steps** — there is no plugin system and
+no dynamic discovery (the graph is still hand-wired; see step 6):
 
 1. **Create the module**
    `app/agents/example_agent.py` with `def example_agent(state: AgentState) -> dict`.
@@ -85,10 +85,22 @@ no registry file, no dynamic discovery:
    feasibility (`_after_research` / `_after_books`).
 5. **Add deterministic tests** in `scripts/` (zero-quota). Run the regression
    suite.
+6. **Register the contract** in `app/agents/registry.py` (2026-10-30): node
+   name, entry point, routes, planner capability (or `None`), tools,
+   permissions (network / filesystem / writes / approval), state keys read and
+   written, what it REJECTS, its model use, and its test files. If a planner
+   capability is added, also extend `app/planner.py: CAPABILITIES` and
+   `app/graph.py: CAPABILITY_NODES` / `_TASK_NODE_FNS` /
+   `CAPABILITY_AGENT_KEYS`.
 
 The graph stays **explicit and readable** — every node and every route is a
-literal line in `app/graph.py`. Do not centralize metadata into a registry
-that the graph reads dynamically; the hand-written map is the documentation.
+literal line in `app/graph.py`. `app/agents/registry.py` is **passive data**:
+nothing at runtime imports it, so it cannot become a second orchestration
+layer. It is kept honest by `scripts/test_agent_registry.py`, which fails if
+the registry and the graph's node set disagree, if an entry does not resolve
+to a real callable, or if the planner/dispatcher capability maps drift from
+it. That is the difference between *documentation* and *an authority*: the
+test is what makes the document true.
 
 ---
 

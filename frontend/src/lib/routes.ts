@@ -9,7 +9,11 @@ export type View =
   | { name: 'executions' }
   | { name: 'detail'; id: string }
   | { name: 'services' }
-  | { name: 'agents' }
+  | { name: 'agents'; id?: string }
+  | { name: 'skills' }
+  | { name: 'learning' }
+  | { name: 'memory' }
+  | { name: 'approvals' }
   | { name: 'tasks' }
   | { name: 'settings' }
 
@@ -32,7 +36,20 @@ export function viewFromHash(hash: string = window.location.hash): View {
   if (h === 'executions') return { name: 'executions' }
   if (h === 'new') return { name: 'new' }
   if (h === 'services') return { name: 'services' }
+  if (h.startsWith('agents/')) {
+    let id: string
+    try {
+      id = decodeURIComponent(h.slice('agents/'.length))
+    } catch {
+      return { name: 'agents' }
+    }
+    return id ? { name: 'agents', id } : { name: 'agents' }
+  }
   if (h === 'agents') return { name: 'agents' }
+  if (h === 'skills') return { name: 'skills' }
+  if (h === 'learning') return { name: 'learning' }
+  if (h === 'memory') return { name: 'memory' }
+  if (h === 'approvals') return { name: 'approvals' }
   if (h === 'tasks') return { name: 'tasks' }
   if (h === 'settings') return { name: 'settings' }
   return { name: 'dashboard' }

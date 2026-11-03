@@ -1,0 +1,269 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentica.local/schemas/execution_record.v1.json",
+  "title": "Agentica execution record v1 (PROPOSAL — not an implemented format)",
+  "description": "PROPOSAL produced by the read-only architecture assessment (docs/AGENTICA_ARCHITECTURE_AND_ROADMAP.md, 2026-10-27). No code in this repository emits this document yet; the persistence/event gaps that block it are listed in that roadmap (section 5.2). Consumers MUST ignore unknown properties (additive evolution within v1); producers MUST emit explicit nulls for missing values rather than omitting required fields, so that a partial or legacy run exports as partial:true with incomplete_fields[] instead of failing validation.",
+  "type": "object",
+  "required": ["schema_version", "view", "generated_at", "run", "result"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {
+      "const": "agentica.execution.v1",
+      "description": "Breaking changes start a new major (agentica.execution.v2); exporters upgrade legacy rows on read."
+    },
+    "view": {
+      "enum": ["result", "full"],
+      "description": "result = single-answer projection; full = complete lifecycle incl. agents, tools, retrieval, decisions, plan and events."
+    },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "partial": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the source row is legacy/incomplete; see incomplete_fields."
+    },
+    "incomplete_fields": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "run": {
+      "type": "object",
+      "description": "Identity, request, routing and source-selection of one execution.",
+      "required": ["id", "status", "created_at", "request"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "description": "Execution id (binds every record to exactly one run; never reused)." },
+        "status": { "enum": ["queued", "running", "completed", "failed", "cancelled"] },
+        "partial": { "type": "boolean" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "started_at": { "type": ["string", "null"], "format": "date-time" },
+        "completed_at": { "type": ["string", "null"], "format": "date-time" },
+        "duration_ms": { "type": ["integer", "null"], "minimum": 0 },
+        "request": {
+          "type": "object",
+          "required": ["question"],
+          "additionalProperties": true,
+          "properties": {
+            "question": { "type": "string", "description": "Original user request, Unicode preserved verbatim (incl. Arabic)." },
+            "language_hint": { "type": ["string", "null"] }
+          }
+        },
+        "routing": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "properties": {
+            "route": { "enum": ["books", "research", "feasibility", "erp", "multi", null] },
+            "mode": { "enum": ["keyword", "llm", null] },
+            "decision_event_id": { "type": ["integer", "null"] }
+          }
+        },
+        "source_selection": {
+          "type": ["object", "null"],
+          "description": "Books-to-internet orchestration outcome (roadmap section 4).",
+          "additionalProperties": true,
+          "properties": {
+            "initial_source": { "enum": ["books", "research", "erp", "feasibility", null] },
+            "fallback_used": { "type": "boolean" },
+            "fallback_reason": { "type": ["string", "null"], "description": "books_insufficient:<failure_class>:<reason> or null." },
+            "local_only": { "type": "boolean", "description": "Explicit local-only/document-scoped request: research must not run." },
+            "external_calls": { "type": "integer", "minimum": 0, "description": "Count of live search/crawl batches; 0 for local-only runs." }
+          }
+        },
+        "model": {
+          "type": ["object", "null"],
+          "description": "Provider + model identity only — never keys, endpoints credentials, or environment values.",
+          "additionalProperties": false,
+          "properties": {
+            "provider": { "enum": ["gemini", "ollama", null] },
+            "name": { "type": ["string", "null"] }
+          }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "required": ["answer", "citations", "provenance", "qa_flags", "errors"],
+      "additionalProperties": true,
+      "properties": {
+        "answer": { "type": "string", "description": "Final rendered answer text as shown in the GUI (may be the mandated abstention sentence)." },
+        "citations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["document"],
+            "additionalProperties": true,
+            "properties": {
+              "document": { "type": "string" },
+              "page_label": { "type": ["string", "null"], "description": "Printed folio label from chunk metadata." },
+              "chunk_ids": { "type": "array", "items": { "type": "string" } },
+              "url": { "type": ["string", "null"], "description": "For research provenance." },
+              "support": { "enum": ["verified", "unverified", "unavailable"] }
+            }
+          }
+        },
+        "provenance": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "state[\"sources\"]: agent names and external URLs, local vs external kept distinguishable."
+        },
+        "qa_flags": { "type": "array", "items": { "type": "string" } },
+        "refusal": {
+          "type": ["object", "null"],
+          "description": "Structured refusal diagnosis (scalars only — never passage text, never model output).",
+          "additionalProperties": true,
+          "properties": {
+            "reason": { "type": ["string", "null"] },
+            "stage": { "type": ["string", "null"] },
+            "score": { "type": ["number", "null"] },
+            "recovery": { "enum": ["not_attempted", "skipped_not_eligible", "attempted", "succeeded", "rejected", null] },
+            "gate_drop": { "type": ["string", "null"], "description": "Bounded diagnostic excerpt (capped length)." }
+          }
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["category", "human_message"],
+            "additionalProperties": true,
+            "properties": {
+              "category": { "type": "string" },
+              "human_message": { "type": "string" },
+              "why": { "type": ["string", "null"] },
+              "recovery": { "type": ["string", "null"] },
+              "details": { "type": ["object", "null"], "description": "Redacted: no credentials, no environment values, capped strings." }
+            }
+          }
+        }
+      }
+    },
+    "evaluation": {
+      "type": "array",
+      "description": "Zero or more evaluation outcomes linked to this run (multiple cases allowed).",
+      "items": {
+        "type": "object",
+        "required": ["suite"],
+        "additionalProperties": true,
+        "properties": {
+          "suite": { "type": "string" },
+          "artifact": { "type": ["string", "null"] },
+          "executed": { "type": ["integer", "null"] },
+          "passed": { "type": ["integer", "null"] },
+          "failed": { "type": ["integer", "null"] },
+          "skipped": { "type": ["integer", "null"] },
+          "metrics": { "type": ["object", "null"], "additionalProperties": true }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "description": "Present only in view=full.",
+      "additionalProperties": true,
+      "properties": {
+        "plan": { "type": ["object", "null"], "description": "Serialized executed plan (same projection as /plan endpoint)." },
+        "agents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["agent_id", "status"],
+            "additionalProperties": true,
+            "properties": {
+              "agent_id": { "type": "string" },
+              "status": { "enum": ["started", "completed", "failed"] },
+              "started_at": { "type": ["string", "null"] },
+              "completed_at": { "type": ["string", "null"] },
+              "duration_ms": { "type": ["integer", "null"] },
+              "error_category": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "tools": {
+          "type": "array",
+          "description": "Safe summaries only: purpose, timing, outcome. Input/output are redacted summaries, never raw payloads.",
+          "items": {
+            "type": "object",
+            "required": ["tool", "outcome"],
+            "additionalProperties": true,
+            "properties": {
+              "tool": { "enum": ["searxng.search", "crawl.extract", "books.retrieve", "workspace.read", "workspace.write"] },
+              "started_at": { "type": ["string", "null"] },
+              "duration_ms": { "type": ["integer", "null"] },
+              "outcome": { "enum": ["success", "empty", "failed", "denied"] },
+              "input_summary": { "type": ["string", "null"], "description": "Redacted (e.g. query hash/length); no document contents, no secrets." },
+              "output_summary": { "type": ["string", "null"], "description": "Counts/identifiers only (results, bytes, rows)."},
+              "error_category": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "retrieval": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "top_k": { "type": ["integer", "null"] },
+              "chunks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "chunk_id": { "type": ["string", "null"] },
+                    "file_name": { "type": ["string", "null"] },
+                    "page_label": { "type": ["string", "null"] },
+                    "score": { "type": ["number", "null"] }
+                  }
+                }
+              },
+              "excerpt_max_chars": { "type": ["integer", "null"], "description": "Bounded excerpt length policy; full passages are never exported." }
+            }
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "description": "Routing/recovery/fallback/gate decisions with the code and reason, recorded as they happened.",
+          "items": {
+            "type": "object",
+            "required": ["kind", "at"],
+            "additionalProperties": true,
+            "properties": {
+              "kind": { "enum": ["routing", "recovery", "fallback", "gate", "approval"] },
+              "code": { "type": ["string", "null"] },
+              "reason": { "type": ["string", "null"] },
+              "at": { "type": "string", "format": "date-time" },
+              "event_id": { "type": ["integer", "null"] }
+            }
+          }
+        },
+        "events": {
+          "type": "array",
+          "description": "Raw append-only event log for the run, in event_id order.",
+          "items": {
+            "type": "object",
+            "required": ["event_id", "timestamp", "type", "message"],
+            "additionalProperties": true,
+            "properties": {
+              "event_id": { "type": "integer", "minimum": 1 },
+              "timestamp": { "type": "string", "format": "date-time" },
+              "type": { "type": "string" },
+              "message": { "type": "string" },
+              "step_id": { "type": ["string", "null"] },
+              "agent_id": { "type": ["string", "null"] },
+              "severity": { "enum": ["info", "warning", "error"] },
+              "payload": { "type": "object", "additionalProperties": true }
+            }
+          }
+        }
+      }
+    },
+    "redaction": {
+      "type": "object",
+      "description": "Declaration of what was withheld, so a consumer can tell redaction from absence.",
+      "additionalProperties": false,
+      "properties": {
+        "keys_removed": { "type": "boolean", "default": true },
+        "passages_omitted": { "type": "boolean", "default": true },
+        "reason": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

@@ -1,0 +1,1210 @@
+{
+  "harness": "rag_ae",
+  "harness_version": "1.0",
+  "mode": "unit",
+  "run_id": "3867c30a-1f32-45f6-8a22-33cb9b51ea67",
+  "timestamp_utc": "2026-10-23T18:13:37Z",
+  "git": {
+    "head": "08d44b6ce173ba062be4dcead68e7752d02063ba",
+    "branch": "main",
+    "dirty": true
+  },
+  "environment": {
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.26100-SP0",
+    "packages": {
+      "chromadb": "1.5.9",
+      "llama-index-core": "0.14.25",
+      "langchain-core": "1.6.6",
+      "pypdf": "6.19.0",
+      "docx2txt": "0.9",
+      "python-dotenv": "1.2.4"
+    }
+  },
+  "dataset": {
+    "path": "benchmarks\\rag_gold_v2.json",
+    "sha256": "b34d68894c44a7249f7e01c5610e005e5b8ba4f3d35e61d70e9d8e43f650b5d1",
+    "id": "rag_gold_v2",
+    "version": 2
+  },
+  "config": {
+    "out": "benchmarks\\rag_ae_unit_v1.json",
+    "top_k": 4,
+    "collection": null,
+    "embedding": "none (scripted evidence)",
+    "chat_model": "scripted-double",
+    "books_verifier": "off (production default)",
+    "books_min_score": 0.35
+  },
+  "isolation": {
+    "guard_armed": true,
+    "guard_files_unchanged": true,
+    "store": null,
+    "network_attempts": []
+  },
+  "external_calls": {
+    "network": 0,
+    "chat_model": "scripted-double",
+    "embedding": "none",
+    "offline_deterministic": true
+  },
+  "counts": {
+    "discovered": 19,
+    "executable": 16,
+    "executed": 16,
+    "passed": 16,
+    "failed": 0,
+    "skipped": 0,
+    "unresolved": 3
+  },
+  "answer_quality": {
+    "by_dimension": {
+      "error": {
+        "applicable": 16,
+        "passed": 16,
+        "rate": 1.0
+      },
+      "abstention": {
+        "applicable": 15,
+        "passed": 15,
+        "rate": 1.0
+      },
+      "facts_present": {
+        "applicable": 10,
+        "passed": 10,
+        "rate": 1.0
+      },
+      "contradiction": {
+        "applicable": 6,
+        "passed": 6,
+        "rate": 1.0
+      },
+      "groundedness": {
+        "applicable": 10,
+        "passed": 10,
+        "rate": 1.0
+      },
+      "evidence_use": {
+        "applicable": 10,
+        "passed": 10,
+        "rate": 1.0
+      },
+      "relevance": {
+        "applicable": 10,
+        "passed": 10,
+        "rate": 1.0
+      },
+      "citation": {
+        "applicable": 15,
+        "passed": 15,
+        "rate": 1.0
+      },
+      "disclosure": {
+        "applicable": 15,
+        "passed": 15,
+        "rate": 1.0
+      },
+      "recovery": {
+        "applicable": 16,
+        "passed": 16,
+        "rate": 1.0
+      }
+    },
+    "abstention": {
+      "true_abstain": 5,
+      "false_abstain": 0,
+      "missed_abstain": 0,
+      "true_answer": 10,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "by_category": {
+      "false-refusal-probe": {
+        "applicable": 3,
+        "passed": 3,
+        "rate": 1.0
+      },
+      "paraphrased-answerable": {
+        "applicable": 2,
+        "passed": 2,
+        "rate": 1.0
+      },
+      "direct-fact": {
+        "applicable": 4,
+        "passed": 4,
+        "rate": 1.0
+      },
+      "numerical-variant": {
+        "applicable": 2,
+        "passed": 2,
+        "rate": 1.0
+      },
+      "units-explicit": {
+        "applicable": 1,
+        "passed": 1,
+        "rate": 1.0
+      },
+      "partially-answerable": {
+        "applicable": 1,
+        "passed": 1,
+        "rate": 1.0
+      },
+      "abstention-disclosure": {
+        "applicable": 1,
+        "passed": 1,
+        "rate": 1.0
+      },
+      "unanswerable-domain-adjacent": {
+        "applicable": 1,
+        "passed": 1,
+        "rate": 1.0
+      },
+      "correct-abstention": {
+        "applicable": 4,
+        "passed": 4,
+        "rate": 1.0
+      },
+      "multi-doc-attribution": {
+        "applicable": 1,
+        "passed": 1,
+        "rate": 1.0
+      },
+      "citation-correctness": {
+        "applicable": 3,
+        "passed": 3,
+        "rate": 1.0
+      },
+      "complex-document-scan": {
+        "applicable": 1,
+        "passed": 1,
+        "rate": 1.0
+      },
+      "fabricated-content": {
+        "applicable": 1,
+        "passed": 1,
+        "rate": 1.0
+      },
+      "conflicting-evidence": {
+        "applicable": 1,
+        "passed": 1,
+        "rate": 1.0
+      },
+      "similar-documents": {
+        "applicable": 1,
+        "passed": 1,
+        "rate": 1.0
+      },
+      "robustness": {
+        "applicable": 2,
+        "passed": 2,
+        "rate": 1.0
+      },
+      "empty-retrieval": {
+        "applicable": 1,
+        "passed": 1,
+        "rate": 1.0
+      },
+      "controlled-retrieval-failure": {
+        "applicable": 1,
+        "passed": 1,
+        "rate": 1.0
+      },
+      "malformed-metadata": {
+        "applicable": 1,
+        "passed": 1,
+        "rate": 1.0
+      },
+      "refusal-recovery": {
+        "applicable": 2,
+        "passed": 2,
+        "rate": 1.0
+      },
+      "retry-bound": {
+        "applicable": 1,
+        "passed": 1,
+        "rate": 1.0
+      },
+      "prompt-injection": {
+        "applicable": 1,
+        "passed": 1,
+        "rate": 1.0
+      }
+    }
+  },
+  "retrieval": null,
+  "definitions": {
+    "correctness": "boolean: every required_facts entry of the case appears in the final answer (whitespace-normalized substring). Applicable to answerable/partial cases only.",
+    "completeness": "fraction: |required facts present| / |required facts| over answerable cases.",
+    "groundedness": "boolean per case: every substantive sentence of the final answer body has all its content tokens in the scripted/retrieved evidence text or its allowlisted citation metadata, and every number in the body appears literally in the evidence TEXT. Independent re-implementation of the production contract (disclosure/refusal/score-note lines exempt); rule-based token coverage, NOT semantic entailment.",
+    "evidence_use": "boolean: the final answer of an answerable, non-abstained case contains at least one required fact (isolates 'answered from nowhere').",
+    "relevance": "boolean (proxy): an answerable, non-abstained final answer shares at least one distinctive (non-stopword) content term with the question.",
+    "citation": "boolean per case against the case's citation expectation: 'required' -> a References footer exists naming exactly the expected evidence files (validated against evidence metadata, pages must match); 'forbidden' -> no footer; 'unavailable' -> footer exists and only says 'attribution unavailable', never an invented filename.",
+    "abstention": "boolean: final answer starts with the mandated NOT_FOUND_PHRASE iff the case expects abstention. Aggregated as precision/recall over executed unit cases.",
+    "contradiction": "boolean: none of the case's forbidden_facts (fixture-declared conflicting/wrong/planted values) appear in the final answer.",
+    "robustness": "boolean: for cases labeled robustness, forbidden distractor facts absent AND required facts still present.",
+    "recovery": "boolean: M5 markers in captured stdout (attempted/succeeded/rejected) and the scripted-LLM call count match the case's recovery expectations.",
+    "hit@k": "integration: the case's gold documents (min_docs_covered distinct) appear among the top-k retrieved chunks (k=1,3,4; page-restricted when gold_pages is set).",
+    "precision@k": "integration: fraction of the top-k retrieved chunks whose (file, page) is gold evidence for the case.",
+    "reciprocal_rank": "integration: 1 / rank of the first gold-retrieved chunk (0 if none).",
+    "fact_coverage": "integration: fraction of answerable cases whose required facts all appear literally in the retrieved top-k context text.",
+    "averaging": "macro: every rate is the unweighted mean over the cases where the metric is applicable; skipped/unresolved cases never enter a denominator."
+  },
+  "cases": [
+    {
+      "id": "C001",
+      "status": "pass",
+      "failed_checks": [],
+      "diagnostics": [],
+      "checks": {
+        "error": {
+          "verdict": "pass",
+          "reason": "no controlled failure"
+        },
+        "abstention": {
+          "verdict": "pass",
+          "reason": "abstention matches expectation"
+        },
+        "facts_present": {
+          "verdict": "pass",
+          "reason": "all 2 required fact(s) present"
+        },
+        "contradiction": {
+          "verdict": "skip",
+          "reason": "no forbidden facts declared"
+        },
+        "groundedness": {
+          "verdict": "pass",
+          "reason": "every substantive sentence is evidenced (independent token/number check)"
+        },
+        "evidence_use": {
+          "verdict": "pass",
+          "reason": "answer draws on expected evidence"
+        },
+        "relevance": {
+          "verdict": "pass",
+          "reason": "answer shares question content terms"
+        },
+        "citation": {
+          "verdict": "pass",
+          "reason": "footer cites exactly the expected validated sources"
+        },
+        "disclosure": {
+          "verdict": "pass",
+          "reason": "no partial disclosure (not expected)"
+        },
+        "recovery": {
+          "verdict": "pass",
+          "reason": "recovery markers match (attempted=False, outcome=None, llm_calls=0)",
+          "attempted": false,
+          "outcome": null,
+          "llm_calls": 0
+        }
+      },
+      "final_answer": "The Hohmann transfer is the minimum-energy two-impulse maneuver connecting two circular, coplanar orbits. Moving from low Earth orbit to geostationary transfer orbit requires roughly 2.4 kilometers per second of delta-v, and circularizing at geostationary altitude adds approximately 1.5 kilometers per second more.\n\nReferences: orbital_kinetics_principles.docx",
+      "final_answer_sha256": "7f4ba6bef5bfae8d1a5f6f887ff22e28abb965576d9ba29c22f2815f5b643dc6",
+      "recovery": {
+        "attempted": false,
+        "outcome": null,
+        "llm_calls": 0
+      },
+      "runtime_ms": 1.364
+    },
+    {
+      "id": "C002",
+      "status": "pass",
+      "failed_checks": [],
+      "diagnostics": [],
+      "checks": {
+        "error": {
+          "verdict": "pass",
+          "reason": "no controlled failure"
+        },
+        "abstention": {
+          "verdict": "pass",
+          "reason": "abstention matches expectation"
+        },
+        "facts_present": {
+          "verdict": "pass",
+          "reason": "all 2 required fact(s) present"
+        },
+        "contradiction": {
+          "verdict": "skip",
+          "reason": "no forbidden facts declared"
+        },
+        "groundedness": {
+          "verdict": "pass",
+          "reason": "every substantive sentence is evidenced (independent token/number check)"
+        },
+        "evidence_use": {
+          "verdict": "pass",
+          "reason": "answer draws on expected evidence"
+        },
+        "relevance": {
+          "verdict": "pass",
+          "reason": "answer shares question content terms"
+        },
+        "citation": {
+          "verdict": "pass",
+          "reason": "footer cites exactly the expected validated sources"
+        },
+        "disclosure": {
+          "verdict": "pass",
+          "reason": "no partial disclosure (not expected)"
+        },
+        "recovery": {
+          "verdict": "pass",
+          "reason": "recovery markers match (attempted=False, outcome=None, llm_calls=0)",
+          "attempted": false,
+          "outcome": null,
+          "llm_calls": 0
+        }
+      },
+      "final_answer": "The Hohmann transfer is the minimum-energy two-impulse maneuver connecting two circular, coplanar orbits. Moving from low Earth orbit to geostationary transfer orbit requires roughly 2.4 kilometers per second of delta-v, and circularizing at geostationary altitude adds approximately 1.5 kilometers per second more.\n\nReferences: orbital_kinetics_principles.docx",
+      "final_answer_sha256": "7f4ba6bef5bfae8d1a5f6f887ff22e28abb965576d9ba29c22f2815f5b643dc6",
+      "recovery": {
+        "attempted": false,
+        "outcome": null,
+        "llm_calls": 0
+      },
+      "runtime_ms": 0.906
+    },
+    {
+      "id": "C003",
+      "status": "pass",
+      "failed_checks": [],
+      "diagnostics": [],
+      "checks": {
+        "error": {
+          "verdict": "pass",
+          "reason": "no controlled failure"
+        },
+        "abstention": {
+          "verdict": "pass",
+          "reason": "abstention matches expectation"
+        },
+        "facts_present": {
+          "verdict": "pass",
+          "reason": "all 1 required fact(s) present"
+        },
+        "contradiction": {
+          "verdict": "skip",
+          "reason": "no forbidden facts declared"
+        },
+        "groundedness": {
+          "verdict": "pass",
+          "reason": "every substantive sentence is evidenced (independent token/number check)"
+        },
+        "evidence_use": {
+          "verdict": "pass",
+          "reason": "answer draws on expected evidence"
+        },
+        "relevance": {
+          "verdict": "pass",
+          "reason": "answer shares question content terms"
+        },
+        "citation": {
+          "verdict": "pass",
+          "reason": "footer cites exactly the expected validated sources"
+        },
+        "disclosure": {
+          "verdict": "pass",
+          "reason": "no partial disclosure (not expected)"
+        },
+        "recovery": {
+          "verdict": "pass",
+          "reason": "recovery markers match (attempted=False, outcome=None, llm_calls=0)",
+          "attempted": false,
+          "outcome": null,
+          "llm_calls": 0
+        }
+      },
+      "final_answer": "Geostationary orbit lies at an altitude of approximately 35,786 kilometers above the equator, where the orbital period matches Earth's rotation, so the spacecraft appears fixed over one longitude.\n\nReferences: orbital_kinetics_principles.docx",
+      "final_answer_sha256": "9be5ee76d8fcddb7c4048cec804d4f82f86f2e8b926b34c9b27adab5a1e62507",
+      "recovery": {
+        "attempted": false,
+        "outcome": null,
+        "llm_calls": 0
+      },
+      "runtime_ms": 1.128
+    },
+    {
+      "id": "C004",
+      "status": "pass",
+      "failed_checks": [],
+      "diagnostics": [],
+      "checks": {
+        "error": {
+          "verdict": "pass",
+          "reason": "no controlled failure"
+        },
+        "abstention": {
+          "verdict": "pass",
+          "reason": "abstention matches expectation"
+        },
+        "facts_present": {
+          "verdict": "pass",
+          "reason": "all 1 required fact(s) present"
+        },
+        "contradiction": {
+          "verdict": "skip",
+          "reason": "no forbidden facts declared"
+        },
+        "groundedness": {
+          "verdict": "pass",
+          "reason": "every substantive sentence is evidenced (independent token/number check)"
+        },
+        "evidence_use": {
+          "verdict": "pass",
+          "reason": "answer draws on expected evidence"
+        },
+        "relevance": {
+          "verdict": "pass",
+          "reason": "answer shares question content terms"
+        },
+        "citation": {
+          "verdict": "pass",
+          "reason": "footer cites exactly the expected validated sources"
+        },
+        "disclosure": {
+          "verdict": "pass",
+          "reason": "no partial disclosure (not expected)"
+        },
+        "recovery": {
+          "verdict": "pass",
+          "reason": "recovery markers match (attempted=False, outcome=None, llm_calls=0)",
+          "attempted": false,
+          "outcome": null,
+          "llm_calls": 0
+        }
+      },
+      "final_answer": "For low Earth orbit at 400 km altitude, the orbital speed is approximately 7.67 kilometers per second and one revolution takes about 92.4 minutes.\n\nReferences: orbital_kinetics_principles.docx",
+      "final_answer_sha256": "d23600246bfe9759f989dd6526b2d22be6844bf707760f4abd478e48db2e3b20",
+      "recovery": {
+        "attempted": false,
+        "outcome": null,
+        "llm_calls": 0
+      },
+      "runtime_ms": 0.68
+    },
+    {
+      "id": "C005",
+      "status": "pass",
+      "failed_checks": [],
+      "diagnostics": [],
+      "checks": {
+        "error": {
+          "verdict": "pass",
+          "reason": "no controlled failure"
+        },
+        "abstention": {
+          "verdict": "pass",
+          "reason": "abstention matches expectation"
+        },
+        "facts_present": {
+          "verdict": "pass",
+          "reason": "all 1 required fact(s) present"
+        },
+        "contradiction": {
+          "verdict": "pass",
+          "reason": "no forbidden content present"
+        },
+        "groundedness": {
+          "verdict": "pass",
+          "reason": "every substantive sentence is evidenced (independent token/number check)"
+        },
+        "evidence_use": {
+          "verdict": "pass",
+          "reason": "answer draws on expected evidence"
+        },
+        "relevance": {
+          "verdict": "pass",
+          "reason": "answer shares question content terms"
+        },
+        "citation": {
+          "verdict": "pass",
+          "reason": "footer cites exactly the expected validated sources"
+        },
+        "disclosure": {
+          "verdict": "pass",
+          "reason": "partial-support disclosure present"
+        },
+        "recovery": {
+          "verdict": "pass",
+          "reason": "recovery markers match (attempted=False, outcome=None, llm_calls=0)",
+          "attempted": false,
+          "outcome": null,
+          "llm_calls": 0
+        }
+      },
+      "final_answer": "Honey is harvested only when its moisture content drops below 18 percent, which prevents fermentation during storage. Note: the answer above is limited to the parts supported by the retrieved book passages; the rest was not found in the books.\n\nReferences: urban_beekeeping_field_guide.pdf, page 1",
+      "final_answer_sha256": "83822829497fdcbd236f4fed2661af84f7c19fd5487fd5cc59c9cc344a71d29a",
+      "recovery": {
+        "attempted": false,
+        "outcome": null,
+        "llm_calls": 0
+      },
+      "runtime_ms": 0.917
+    },
+    {
+      "id": "C006",
+      "status": "pass",
+      "failed_checks": [],
+      "diagnostics": [],
+      "checks": {
+        "error": {
+          "verdict": "pass",
+          "reason": "no controlled failure"
+        },
+        "abstention": {
+          "verdict": "pass",
+          "reason": "abstention matches expectation"
+        },
+        "facts_present": {
+          "verdict": "skip",
+          "reason": "no fact expectation"
+        },
+        "contradiction": {
+          "verdict": "pass",
+          "reason": "no forbidden content present"
+        },
+        "groundedness": {
+          "verdict": "skip",
+          "reason": "abstention carries no content"
+        },
+        "evidence_use": {
+          "verdict": "skip",
+          "reason": "abstention"
+        },
+        "relevance": {
+          "verdict": "skip",
+          "reason": "abstention is the correct relevance"
+        },
+        "citation": {
+          "verdict": "pass",
+          "reason": "no References footer (as required)"
+        },
+        "disclosure": {
+          "verdict": "pass",
+          "reason": "no partial disclosure (not expected)"
+        },
+        "recovery": {
+          "verdict": "pass",
+          "reason": "recovery markers match (attempted=False, outcome=None, llm_calls=0)",
+          "attempted": false,
+          "outcome": null,
+          "llm_calls": 0
+        }
+      },
+      "final_answer": "The requested information was not found in the books.",
+      "final_answer_sha256": "1ee39a7ce2ec32b7d9699e99954b0c6ac0d3c6875cb140a9d4c4b6c864daddb0",
+      "recovery": {
+        "attempted": false,
+        "outcome": null,
+        "llm_calls": 0
+      },
+      "runtime_ms": 4.656
+    },
+    {
+      "id": "C007",
+      "status": "pass",
+      "failed_checks": [],
+      "diagnostics": [],
+      "checks": {
+        "error": {
+          "verdict": "pass",
+          "reason": "no controlled failure"
+        },
+        "abstention": {
+          "verdict": "pass",
+          "reason": "abstention matches expectation"
+        },
+        "facts_present": {
+          "verdict": "pass",
+          "reason": "all 2 required fact(s) present"
+        },
+        "contradiction": {
+          "verdict": "skip",
+          "reason": "no forbidden facts declared"
+        },
+        "groundedness": {
+          "verdict": "pass",
+          "reason": "every substantive sentence is evidenced (independent token/number check)"
+        },
+        "evidence_use": {
+          "verdict": "pass",
+          "reason": "answer draws on expected evidence"
+        },
+        "relevance": {
+          "verdict": "pass",
+          "reason": "answer shares question content terms"
+        },
+        "citation": {
+          "verdict": "pass",
+          "reason": "footer cites exactly the expected validated sources"
+        },
+        "disclosure": {
+          "verdict": "pass",
+          "reason": "no partial disclosure (not expected)"
+        },
+        "recovery": {
+          "verdict": "pass",
+          "reason": "recovery markers match (attempted=False, outcome=None, llm_calls=0)",
+          "attempted": false,
+          "outcome": null,
+          "llm_calls": 0
+        }
+      },
+      "final_answer": "The Tsiolkovsky rocket equation relates delta-v to exhaust velocity and mass ratio. The Langstroth hive uses removable frames and relies on the bee space: a corridor of 6 to 9 millimeters that bees keep free of comb and propolis.\n\nReferences: orbital_kinetics_principles.docx; urban_beekeeping_field_guide.pdf, page 1",
+      "final_answer_sha256": "2796e169bcac1db4e785c6970dcdb7dccb73626bae68fc2a457288b81ef757fd",
+      "recovery": {
+        "attempted": false,
+        "outcome": null,
+        "llm_calls": 0
+      },
+      "runtime_ms": 1.15
+    },
+    {
+      "id": "C008",
+      "status": "pass",
+      "failed_checks": [],
+      "diagnostics": [],
+      "checks": {
+        "error": {
+          "verdict": "pass",
+          "reason": "no controlled failure"
+        },
+        "abstention": {
+          "verdict": "pass",
+          "reason": "abstention matches expectation"
+        },
+        "facts_present": {
+          "verdict": "skip",
+          "reason": "no fact expectation"
+        },
+        "contradiction": {
+          "verdict": "pass",
+          "reason": "no forbidden content present"
+        },
+        "groundedness": {
+          "verdict": "skip",
+          "reason": "abstention carries no content"
+        },
+        "evidence_use": {
+          "verdict": "skip",
+          "reason": "abstention"
+        },
+        "relevance": {
+          "verdict": "skip",
+          "reason": "abstention is the correct relevance"
+        },
+        "citation": {
+          "verdict": "pass",
+          "reason": "no References footer (as required)"
+        },
+        "disclosure": {
+          "verdict": "pass",
+          "reason": "no partial disclosure (not expected)"
+        },
+        "recovery": {
+          "verdict": "pass",
+          "reason": "recovery markers match (attempted=False, outcome=None, llm_calls=0)",
+          "attempted": false,
+          "outcome": null,
+          "llm_calls": 0
+        }
+      },
+      "final_answer": "The requested information was not found in the books.",
+      "final_answer_sha256": "1ee39a7ce2ec32b7d9699e99954b0c6ac0d3c6875cb140a9d4c4b6c864daddb0",
+      "recovery": {
+        "attempted": false,
+        "outcome": null,
+        "llm_calls": 0
+      },
+      "runtime_ms": 0.749
+    },
+    {
+      "id": "C009",
+      "status": "pass",
+      "failed_checks": [],
+      "diagnostics": [],
+      "checks": {
+        "error": {
+          "verdict": "pass",
+          "reason": "no controlled failure"
+        },
+        "abstention": {
+          "verdict": "pass",
+          "reason": "abstention matches expectation"
+        },
+        "facts_present": {
+          "verdict": "skip",
+          "reason": "no fact expectation"
+        },
+        "contradiction": {
+          "verdict": "skip",
+          "reason": "no forbidden facts declared"
+        },
+        "groundedness": {
+          "verdict": "skip",
+          "reason": "abstention carries no content"
+        },
+        "evidence_use": {
+          "verdict": "skip",
+          "reason": "abstention"
+        },
+        "relevance": {
+          "verdict": "skip",
+          "reason": "abstention is the correct relevance"
+        },
+        "citation": {
+          "verdict": "pass",
+          "reason": "no References footer (as required)"
+        },
+        "disclosure": {
+          "verdict": "pass",
+          "reason": "no partial disclosure (not expected)"
+        },
+        "recovery": {
+          "verdict": "pass",
+          "reason": "recovery markers match (attempted=False, outcome=None, llm_calls=0)",
+          "attempted": false,
+          "outcome": null,
+          "llm_calls": 0
+        }
+      },
+      "final_answer": "The requested information was not found in the books.",
+      "final_answer_sha256": "1ee39a7ce2ec32b7d9699e99954b0c6ac0d3c6875cb140a9d4c4b6c864daddb0",
+      "recovery": {
+        "attempted": false,
+        "outcome": null,
+        "llm_calls": 0
+      },
+      "runtime_ms": 1.011
+    },
+    {
+      "id": "C010",
+      "status": "pass",
+      "failed_checks": [],
+      "diagnostics": [],
+      "checks": {
+        "error": {
+          "verdict": "pass",
+          "reason": "no controlled failure"
+        },
+        "abstention": {
+          "verdict": "pass",
+          "reason": "abstention matches expectation"
+        },
+        "facts_present": {
+          "verdict": "pass",
+          "reason": "all 1 required fact(s) present"
+        },
+        "contradiction": {
+          "verdict": "pass",
+          "reason": "no forbidden content present"
+        },
+        "groundedness": {
+          "verdict": "pass",
+          "reason": "every substantive sentence is evidenced (independent token/number check)"
+        },
+        "evidence_use": {
+          "verdict": "pass",
+          "reason": "answer draws on expected evidence"
+        },
+        "relevance": {
+          "verdict": "pass",
+          "reason": "answer shares question content terms"
+        },
+        "citation": {
+          "verdict": "pass",
+          "reason": "footer cites exactly the expected validated sources"
+        },
+        "disclosure": {
+          "verdict": "pass",
+          "reason": "no partial disclosure (not expected)"
+        },
+        "recovery": {
+          "verdict": "pass",
+          "reason": "recovery markers match (attempted=False, outcome=None, llm_calls=0)",
+          "attempted": false,
+          "outcome": null,
+          "llm_calls": 0
+        }
+      },
+      "final_answer": "The synthetic tide table for Hale lists a mean range of 2.7 metres, distinct from the 3.2 metres recorded at Port Meridian.\n\nReferences: fixture_columns.pdf, page 1",
+      "final_answer_sha256": "401cf49c64fe81e8deecfc1fb51879666aed8d486705283bd2def4fed15e39a6",
+      "recovery": {
+        "attempted": false,
+        "outcome": null,
+        "llm_calls": 0
+      },
+      "runtime_ms": 0.445
+    },
+    {
+      "id": "C011",
+      "status": "pass",
+      "failed_checks": [],
+      "diagnostics": [],
+      "checks": {
+        "error": {
+          "verdict": "pass",
+          "reason": "no controlled failure"
+        },
+        "abstention": {
+          "verdict": "pass",
+          "reason": "abstention matches expectation"
+        },
+        "facts_present": {
+          "verdict": "skip",
+          "reason": "no fact expectation"
+        },
+        "contradiction": {
+          "verdict": "pass",
+          "reason": "no forbidden content present"
+        },
+        "groundedness": {
+          "verdict": "skip",
+          "reason": "abstention carries no content"
+        },
+        "evidence_use": {
+          "verdict": "skip",
+          "reason": "abstention"
+        },
+        "relevance": {
+          "verdict": "skip",
+          "reason": "abstention is the correct relevance"
+        },
+        "citation": {
+          "verdict": "pass",
+          "reason": "no References footer (as required)"
+        },
+        "disclosure": {
+          "verdict": "pass",
+          "reason": "no partial disclosure (not expected)"
+        },
+        "recovery": {
+          "verdict": "pass",
+          "reason": "recovery markers match (attempted=False, outcome=None, llm_calls=0)",
+          "attempted": false,
+          "outcome": null,
+          "llm_calls": 0
+        }
+      },
+      "final_answer": "The requested information was not found in the books.",
+      "final_answer_sha256": "1ee39a7ce2ec32b7d9699e99954b0c6ac0d3c6875cb140a9d4c4b6c864daddb0",
+      "recovery": {
+        "attempted": false,
+        "outcome": null,
+        "llm_calls": 0
+      },
+      "runtime_ms": 0.093
+    },
+    {
+      "id": "C012",
+      "status": "pass",
+      "failed_checks": [],
+      "diagnostics": [],
+      "checks": {
+        "error": {
+          "verdict": "pass",
+          "reason": "controlled retrieval failure propagated: RuntimeError: controlled retrieval failure"
+        },
+        "abstention": {
+          "verdict": "skip",
+          "reason": "controlled-failure case"
+        },
+        "facts_present": {
+          "verdict": "skip",
+          "reason": "controlled-failure case"
+        },
+        "groundedness": {
+          "verdict": "skip",
+          "reason": "controlled-failure case"
+        },
+        "evidence_use": {
+          "verdict": "skip",
+          "reason": "controlled-failure case"
+        },
+        "relevance": {
+          "verdict": "skip",
+          "reason": "controlled-failure case"
+        },
+        "citation": {
+          "verdict": "skip",
+          "reason": "controlled-failure case"
+        },
+        "disclosure": {
+          "verdict": "skip",
+          "reason": "controlled-failure case"
+        },
+        "recovery": {
+          "verdict": "pass",
+          "reason": "recovery markers match (attempted=False, outcome=None, llm_calls=0)",
+          "attempted": false,
+          "outcome": null,
+          "llm_calls": 0
+        }
+      },
+      "final_answer": null,
+      "final_answer_sha256": null,
+      "recovery": {
+        "attempted": false,
+        "outcome": null,
+        "llm_calls": 0
+      },
+      "runtime_ms": 0.017
+    },
+    {
+      "id": "C013",
+      "status": "pass",
+      "failed_checks": [],
+      "diagnostics": [],
+      "checks": {
+        "error": {
+          "verdict": "pass",
+          "reason": "no controlled failure"
+        },
+        "abstention": {
+          "verdict": "pass",
+          "reason": "abstention matches expectation"
+        },
+        "facts_present": {
+          "verdict": "pass",
+          "reason": "all 1 required fact(s) present"
+        },
+        "contradiction": {
+          "verdict": "skip",
+          "reason": "no forbidden facts declared"
+        },
+        "groundedness": {
+          "verdict": "pass",
+          "reason": "every substantive sentence is evidenced (independent token/number check)"
+        },
+        "evidence_use": {
+          "verdict": "pass",
+          "reason": "answer draws on expected evidence"
+        },
+        "relevance": {
+          "verdict": "pass",
+          "reason": "answer shares question content terms"
+        },
+        "citation": {
+          "verdict": "pass",
+          "reason": "explicit attribution-unavailable footer"
+        },
+        "disclosure": {
+          "verdict": "pass",
+          "reason": "no partial disclosure (not expected)"
+        },
+        "recovery": {
+          "verdict": "pass",
+          "reason": "recovery markers match (attempted=False, outcome=None, llm_calls=0)",
+          "attempted": false,
+          "outcome": null,
+          "llm_calls": 0
+        }
+      },
+      "final_answer": "Radio channel 16 is monitored continuously by the fictional harbour authority during the synthetic storm season.\n\nReferences: attribution unavailable for 1 supporting passage(s)",
+      "final_answer_sha256": "013e28f305fea5a680b24ec48b03f4bc8e2c59c4cbaff0579f71f07150231478",
+      "recovery": {
+        "attempted": false,
+        "outcome": null,
+        "llm_calls": 0
+      },
+      "runtime_ms": 0.25
+    },
+    {
+      "id": "C014",
+      "status": "pass",
+      "failed_checks": [],
+      "diagnostics": [],
+      "checks": {
+        "error": {
+          "verdict": "pass",
+          "reason": "no controlled failure"
+        },
+        "abstention": {
+          "verdict": "pass",
+          "reason": "abstention matches expectation"
+        },
+        "facts_present": {
+          "verdict": "pass",
+          "reason": "all 2 required fact(s) present"
+        },
+        "contradiction": {
+          "verdict": "skip",
+          "reason": "no forbidden facts declared"
+        },
+        "groundedness": {
+          "verdict": "pass",
+          "reason": "every substantive sentence is evidenced (independent token/number check)"
+        },
+        "evidence_use": {
+          "verdict": "pass",
+          "reason": "answer draws on expected evidence"
+        },
+        "relevance": {
+          "verdict": "pass",
+          "reason": "answer shares question content terms"
+        },
+        "citation": {
+          "verdict": "pass",
+          "reason": "footer cites exactly the expected validated sources"
+        },
+        "disclosure": {
+          "verdict": "pass",
+          "reason": "no partial disclosure (not expected)"
+        },
+        "recovery": {
+          "verdict": "pass",
+          "reason": "recovery markers match (attempted=True, outcome=succeeded, llm_calls=1)",
+          "attempted": true,
+          "outcome": "succeeded",
+          "llm_calls": 1
+        }
+      },
+      "final_answer": "The Hohmann transfer is the minimum-energy two-impulse maneuver connecting two circular, coplanar orbits. Moving from low Earth orbit to geostationary transfer orbit requires roughly 2.4 kilometers per second of delta-v, and circularizing at geostationary altitude adds approximately 1.5 kilometers per second more.\n\nReferences: orbital_kinetics_principles.docx",
+      "final_answer_sha256": "7f4ba6bef5bfae8d1a5f6f887ff22e28abb965576d9ba29c22f2815f5b643dc6",
+      "recovery": {
+        "attempted": true,
+        "outcome": "succeeded",
+        "llm_calls": 1
+      },
+      "runtime_ms": 0.784
+    },
+    {
+      "id": "C015",
+      "status": "pass",
+      "failed_checks": [],
+      "diagnostics": [],
+      "checks": {
+        "error": {
+          "verdict": "pass",
+          "reason": "no controlled failure"
+        },
+        "abstention": {
+          "verdict": "pass",
+          "reason": "abstention matches expectation"
+        },
+        "facts_present": {
+          "verdict": "skip",
+          "reason": "no fact expectation"
+        },
+        "contradiction": {
+          "verdict": "skip",
+          "reason": "no forbidden facts declared"
+        },
+        "groundedness": {
+          "verdict": "skip",
+          "reason": "abstention carries no content"
+        },
+        "evidence_use": {
+          "verdict": "skip",
+          "reason": "abstention"
+        },
+        "relevance": {
+          "verdict": "skip",
+          "reason": "abstention is the correct relevance"
+        },
+        "citation": {
+          "verdict": "pass",
+          "reason": "no References footer (as required)"
+        },
+        "disclosure": {
+          "verdict": "pass",
+          "reason": "no partial disclosure (not expected)"
+        },
+        "recovery": {
+          "verdict": "pass",
+          "reason": "recovery markers match (attempted=True, outcome=rejected, llm_calls=1)",
+          "attempted": true,
+          "outcome": "rejected",
+          "llm_calls": 1
+        }
+      },
+      "final_answer": "The requested information was not found in the books.",
+      "final_answer_sha256": "1ee39a7ce2ec32b7d9699e99954b0c6ac0d3c6875cb140a9d4c4b6c864daddb0",
+      "recovery": {
+        "attempted": true,
+        "outcome": "rejected",
+        "llm_calls": 1
+      },
+      "runtime_ms": 0.218
+    },
+    {
+      "id": "C016",
+      "status": "pass",
+      "failed_checks": [],
+      "diagnostics": [],
+      "checks": {
+        "error": {
+          "verdict": "pass",
+          "reason": "no controlled failure"
+        },
+        "abstention": {
+          "verdict": "pass",
+          "reason": "abstention matches expectation"
+        },
+        "facts_present": {
+          "verdict": "pass",
+          "reason": "all 1 required fact(s) present"
+        },
+        "contradiction": {
+          "verdict": "pass",
+          "reason": "no forbidden content present"
+        },
+        "groundedness": {
+          "verdict": "pass",
+          "reason": "every substantive sentence is evidenced (independent token/number check)"
+        },
+        "evidence_use": {
+          "verdict": "pass",
+          "reason": "answer draws on expected evidence"
+        },
+        "relevance": {
+          "verdict": "pass",
+          "reason": "answer shares question content terms"
+        },
+        "citation": {
+          "verdict": "pass",
+          "reason": "footer cites exactly the expected validated sources"
+        },
+        "disclosure": {
+          "verdict": "pass",
+          "reason": "partial-support disclosure present"
+        },
+        "recovery": {
+          "verdict": "pass",
+          "reason": "recovery markers match (attempted=False, outcome=None, llm_calls=0)",
+          "attempted": false,
+          "outcome": null,
+          "llm_calls": 0
+        }
+      },
+      "final_answer": "The harbour crane at berth 4 must be oiled monthly. Note: the answer above is limited to the parts supported by the retrieved book passages; the rest was not found in the books.\n\nReferences: fixture_adversarial.docx",
+      "final_answer_sha256": "478e55d7ed49001cd7bf1b133a7942f1a324d9a3e1943f341959f2f2f184fb20",
+      "recovery": {
+        "attempted": false,
+        "outcome": null,
+        "llm_calls": 0
+      },
+      "runtime_ms": 0.406
+    },
+    {
+      "id": "C101",
+      "status": "unresolved",
+      "reason": "unresolved: excluded from all scored metrics"
+    },
+    {
+      "id": "C102",
+      "status": "unresolved",
+      "reason": "unresolved: excluded from all scored metrics"
+    },
+    {
+      "id": "C103",
+      "status": "unresolved",
+      "reason": "unresolved: excluded from all scored metrics"
+    }
+  ],
+  "runtime_s": 1.757
+}

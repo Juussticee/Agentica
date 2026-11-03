@@ -14,11 +14,8 @@ GET /api/tags (a POST to /api/tags is not a valid connectivity test), and
 "connectivity" must be distinguished from "working chat generation".
 """
 
-import json
-import socket
 import time
 import urllib.error
-import urllib.request
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -47,39 +44,18 @@ PHASES = ("configured", "endpoint_parsed", "reachable", "authorized",
 
 def _http_json(url: str, method: str = "GET", body: Optional[dict] = None,
                timeout: float = TEST_TIMEOUT) -> Tuple[int, Any]:
-    data = None
-    headers = {"Accept": "application/json"}
-    if body is not None:
-        data = json.dumps(body).encode("utf-8")
-        headers["Content-Type"] = "application/json"
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        raw = resp.read().decode("utf-8", errors="replace")
-        try:
-            return resp.status, json.loads(raw)
-        except Exception:
-            return resp.status, raw
+    """Delegates to diagnostics_core (Increment 2): ONE definition of the
+    bounded JSON request shared by the readiness phases and the dashboard
+    probes. The module attribute is kept so existing patches still apply."""
+    from app import diagnostics_core
+    return diagnostics_core._http_json(url, method=method, body=body,
+                                       timeout=timeout)
 
 
 def _classify_url_error(exc: Exception) -> str:
-    if isinstance(exc, urllib.error.HTTPError):
-        if exc.code in (401, 403):
-            return AI_AUTH_REJECTED
-        if exc.code == 404:
-            return AI_MODEL_MISSING
-        return AI_BAD_RESPONSE
-    if isinstance(exc, urllib.error.URLError):
-        reason = str(getattr(exc, "reason", exc)).lower()
-        if "timed out" in reason:
-            return AI_TIMEOUT
-        if "connection refused" in reason or "connectionreset" in reason:
-            return AI_CONNECTION_REFUSED
-        if "getaddrinfo failed" in reason or "name or service not known" in reason:
-            return AI_DNS_UNREACHABLE
-        return AI_DNS_UNREACHABLE
-    if isinstance(exc, socket.timeout):
-        return AI_TIMEOUT
-    return AI_BAD_RESPONSE
+    """Delegates to diagnostics_core — shared AI_* failure vocabulary."""
+    from app import diagnostics_core
+    return diagnostics_core._classify_url_error(exc)
 
 
 def _fail(state: str, category: str, extra: Optional[dict] = None) -> Dict[str, Any]:
@@ -124,15 +100,11 @@ def check_ollama(base_url: str, model: str,
                                                  AI_DNS_UNREACHABLE, AI_TIMEOUT) else "error"
         return _fail(state, category, {"phases": phases})
 
-    # Phase 5: requested chat model installed?
-    models = tags.get("models", [])
-    names = []
-    for m in models:
-        name = m.get("name") or m.get("model")
-        if name:
-            names.append(name)
-    # bare tag form matches its tagged variant ('llama3' -> 'llama3:latest')
-    model_present = model in names or any(n.split(":")[0] == model for n in names)
+    # Phase 5: requested chat model installed?  (single shared rule:
+    # diagnostics_core.model_present — exact tag or bare tag match.)
+    from app import diagnostics_core
+    names = diagnostics_core.ollama_model_names(tags)
+    model_present = diagnostics_core.model_present(model, names)
     is_embedding_only = (
         all("embed" in n.lower() for n in names) if names
         else (not model_present and any("embed" in n.lower() for n in names))

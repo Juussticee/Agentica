@@ -1,7 +1,25 @@
 # RAG Evaluation — What Is Measured, What Is Missing (Finalization Audit, 2026-10-18)
 
-Status: honest inventory. **No answer-quality evaluation (RAG-AE) has been
-implemented or run.** Nothing below claims otherwise.
+> **UPDATE 2026-10-23 (RAG-AE landed).** The answer-quality harness this
+> audit asked for is now implemented and an offline deterministic baseline is
+> recorded (`docs/RAG_AE_EVALUATION.md`, `scripts/eval_answers.py`,
+> `benchmarks/rag_gold_v2.json`, baselines `benchmarks/rag_ae_unit_v1.json` +
+> `benchmarks/rag_ae_integration_v1.json`). Sections 2–4 below are the
+> pre-implementation inventory and are kept as the audit record; current
+> status of each gap: false-refusal / correct-abstention / citation /
+> partial-disclosure / recovery-bound are now **measured at the deterministic
+> pipeline layer** (gold-v2 C001–C016; answer-layer expectations are
+> fixture-scripted, NOT live-model measurements). Still missing: live-model
+> answer quality (opt-in `local-model` mode exists but was not run),
+> same-value conflicting-evidence adjudication (C101 verified-final
+> unresolved — deterministically unmeasurable, test_case3 pins it),
+> corpus-level citation audits on live answers, and BOOKS_MIN_SCORE
+> calibration. (Cross-chunk row-split tables are a documented chunker
+> limitation; the page-scoped multi-page table class IS now covered by
+> executable C102 in gold-v3.)
+
+Status (original audit, 2026-10-18): honest inventory of the state AT THAT
+TIME. Nothing below claims otherwise.
 
 ## 1. Measured today (with evidence)
 

@@ -20,6 +20,8 @@ Fixtures (each exercises a baseline extraction weakness honestly):
   fixture_scan.pdf       page 1 = image-only (NO text layer), page 2 = text
   fixture_adversarial.docx  benign prose + injected instructions + a fake
                          "References:" block + a fabricated filename citation
+  fixture_multipage_table.pdf  tide-log register whose rows continue on page 2
+                         under a REPEATED header; page-1 lookalike rows
 
 No network, no models, no LLM. Standard library + python-docx (already a
 declared dependency). Run:
@@ -369,6 +371,69 @@ def build_fixture_scan_pdf() -> bytes:
     ])
 
 
+def build_fixture_multipage_table_pdf() -> bytes:
+    """C102 (rag_gold_v3): a REGISTER whose rows continue onto a second page
+    under a REPEATED header row, with near-identical lookalike rows on page 1.
+
+    Deterministic checks this builds make possible (verified capabilities of
+    the current ingest path: per-page documents, page_label preserved,
+    SentenceSplitter 1024/200 so each small page lands in ONE chunk):
+      * retrieval must return the PAGE-2 chunk (gold-pages check),
+      * the page-2 figure must be retrievable in context (fact coverage),
+      * the answer layer must keep the 2000 figure and never the adjacent-row
+        (2.71) or page-1 lookalike figures (wrong-row discrimination),
+      * the repeated header on page 2 gives the column association WITHIN the
+        single chunk that actually exists — no cross-page merge is claimed.
+    Page 2 also carries one natural-language sentence stating the 2000
+    figure (the deterministic support gate scores token support, so a
+    correct answer needs its exact wording evidenced — bare table cells
+    alone cannot ground a fluent reply).
+    """
+    header = ("Year", "Port", "Mean range (metres)", "Max gust (knots)")
+
+    def register_rows(title, values):
+        ops = bytearray()
+        ops += _text_op(54, 742, MARKER, size=9)
+        ops += _text_op(54, 722, title)
+        x0, y0, cw, rh = 72, 660, 120, 30
+        rows = [header] + values
+        for c, cell in enumerate(header):
+            ops += _text_op(x0 + c * cw + 6, 690, cell, size=9)
+        for r, row in enumerate(values):
+            for c, cell in enumerate(row):
+                ops += _text_op(x0 + c * cw + 6,
+                                660 - r * rh + 10, str(cell))
+        ops += _line_op(x0, 672, x0 + len(header) * cw, 672)
+        ops += _line_op(x0, 652, x0 + len(header) * cw, 652)
+        return ops
+
+    page1_title = "Synthetic Tide-Log Register (Multi-Page)"
+    page1 = register_rows(page1_title, [
+        ("1996", "Hale", "2.41", "29 knots"),
+        ("1997", "Hale", "2.55", "27 knots"),
+        ("1998", "Hale", "2.63", "30 knots"),
+    ])
+    page1 += _text_op(54, 520,
+                      "Rows for the years 1999 and 2000 continue on page 2 "
+                      "of this synthetic register.")
+    page1 += _text_op(54, 500,
+                      "Each page repeats the table header row so every chunk "
+                      "carries the column names.")
+
+    page2 = register_rows(page1_title + " (continued from page 1)", [
+        ("1999", "Hale", "2.71", "33 knots"),
+        ("2000", "Hale", "2.84", "35 knots"),
+    ])
+    page2 += _text_op(54, 540,
+                      "The tide-log register records a mean range of 2.84 "
+                      "metres for Hale in the year 2000.")
+    page2 += _text_op(54, 520,
+                      "End of the synthetic tide-log register fixture; the "
+                      "2000 row above is the only evidence for that year.")
+    return _build_pdf([{"content": bytes(page1), "xobjects": []},
+                       {"content": bytes(page2), "xobjects": []}])
+
+
 # --------------------------------------------------------------------------
 # CLI with determinism self-check
 # --------------------------------------------------------------------------
@@ -379,6 +444,7 @@ BUILDERS = {
     "fixture_table.pdf": build_fixture_table_pdf,
     "fixture_scan.pdf": build_fixture_scan_pdf,
     "fixture_adversarial.docx": build_fixture_adversarial_docx,
+    "fixture_multipage_table.pdf": build_fixture_multipage_table_pdf,
 }
 
 

@@ -121,6 +121,59 @@ class TestKeywordFallbackPreserved(unittest.TestCase):
                 self.assertEqual(result["route"], expected)
 
 
+class TestDocumentDeicticRouting(unittest.TestCase):
+    """Approved 2026-10-24 RAG fix: natural document-grounded questions reach
+    books without artificial trigger words (verified GUI misroute failures).
+    Pure keyword routing — zero model calls."""
+
+    DEICTIC_BOOKS = [
+        # Natural four-functions question (T1 without "section/page").
+        ("According to the document, what are the four core functions of the "
+         "AI Risk Management Framework? Explain each briefly.", "books"),
+        # The exact strict wording that misrouted live in the GUI (T3).
+        ("Using only this document, explain the difference between the Map "
+         "and Measure functions.", "books"),
+        # Evidence-from-the-PDF phrasing.
+        ("Where in the PDF can the four functions of the AI RMF be found?",
+         "books"),
+        ("Show me material in that document on trustworthiness traits.",
+         "books"),
+    ]
+
+    def test_natural_document_questions_reach_books(self):
+        for question, expected in self.DEICTIC_BOOKS:
+            with self.subTest(q=question):
+                result = sup.keyword_route({"question": question})
+                self.assertEqual(result["route"], expected)
+
+    def test_precedence_kept_over_deictic_phrases(self):
+        self.assertEqual(
+            sup.keyword_route({"question":
+                "Using only this document, do a feasibility study for the "
+                "beekeeping venture"})["route"],
+            "feasibility")
+        self.assertEqual(
+            sup.keyword_route({"question":
+                "Show me open invoices for this document"})["route"],
+            "erp")
+
+    def test_research_and_ambiguous_fallback_unchanged(self):
+        self.assertEqual(
+            sup.keyword_route({"question":
+                "What is the latest news on fusion energy startups?"})["route"],
+            "research")
+        # 2026-10-28 (Priority A): a cue-less question is answered from
+        # model knowledge; a current-information cue still forces research.
+        self.assertEqual(
+            sup.keyword_route({"question":
+                "Tell me about functions."})["route"],
+            "general")
+        self.assertEqual(
+            sup.keyword_route({"question":
+                "What is the latest on fusion?"})["route"],
+            "research")
+
+
 class TestGraphContractUnchanged(unittest.TestCase):
     def test_keyword_mode_graph_routes_unchanged(self):
         import app.graph as gm

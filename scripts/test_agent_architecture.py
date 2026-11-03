@@ -129,6 +129,12 @@ class TestAgentContract(unittest.TestCase):
             ctor.call_count, 0,
             "books contract test must never construct a Chroma client")
         expected = {"answer", "sources", "agent_answers"}
+        # 2026-10-25 orchestrated-knowledge-fallback phase: this refusal
+        # path additionally carries the structured books_refusal diagnosis
+        # the orchestrator's fallback decision reads; the answer/provenance
+        # shape itself is unchanged.
+        if "books_refusal" in update:
+            expected = expected | {"books_refusal"}
         self.assertEqual(set(update.keys()), expected)
 
     def test_research_agent_returns_only_changed_keys(self):
@@ -232,6 +238,47 @@ class TestStateStability(unittest.TestCase):
             "question", "route", "sub_routes", "sources",
             "answer", "qa_flags", "agent_answers",
             "complex", "plan",
+            # 2026-10-25 orchestrated knowledge fallback: refusal-only
+            # diagnosis channel (app/state.py documents its contract).
+            "books_refusal",
+            # 2026-10-28 GUI-10: resume channel set ONLY by
+            # GraphRunner.resume_approval — carries {approval_id, outcome,
+            # payload} so the research gate revalidates the persisted
+            # decision instead of re-prompting (app/state.py contract).
+            "research_approval",
+            # 2026-10-30 workspace coding: the only channel the `coding` node
+            # writes — {status, workspace, files, approval_id?, validation?,
+            # digest?}. `patch_prepared` never means "written" (app/state.py
+            # documents the contract).
+            "coding",
+            # 2026-10-30 contextual follow-up: the ONLY conversational context
+            # a run receives — the recorded prior execution supplied by
+            # GraphRunner.run, or absent. No node writes it, so a specialist
+            # can never invent one (app/state.py documents the contract).
+            "prior_execution",
+            # 2026-10-30 continuous learning: `lessons` is injected by
+            # GraphRunner.run from the store before the graph starts (no
+            # node writes it); `learning` is written only by the `feedback`
+            # node and reports what was recorded, never a claim that
+            # behaviour changed; `lessons_applied` lists the lesson ids a
+            # node actually inserted into its prompt so use can be counted
+            # (app/state.py documents all three contracts).
+            "lessons",
+            "learning",
+            "lessons_applied",
+            # 2026-11-01 evidence grounding: written ONLY by the `general`
+            # node — which local passages it consulted, the coverage verdict,
+            # and whether the answer came from them or from model knowledge.
+            # QA reads it to check figure/licence claims; declared here because
+            # LangGraph drops undeclared keys between the node and QA
+            # (app/state.py documents the contract).
+            "evidence",
+            # 2026-11-02: written ONLY by the `books` node — the passages that
+            # route actually consulted, in the same shape, so the runner can
+            # persist both routes with one evidence-snapshot writer. Separate
+            # from `evidence` so the general route's QA claim checks keep
+            # exactly one answer path.
+            "books_evidence",
         }
         self.assertEqual(set(AgentState.__annotations__), expected)
 

@@ -301,7 +301,10 @@ class TestMockedEngineContinuity(unittest.TestCase):
         finally:
             ba._get_query_engine = orig
         self.assertEqual(calls, ["engine-resolved"])
-        self.assertEqual(set(update), {"answer", "sources", "agent_answers"})
+        # 2026-10-25 fallback phase: this NOT_FOUND response is a refusal,
+        # so the books_refusal diagnosis key joins the refusal-path shape.
+        self.assertEqual(set(update), {"answer", "sources", "agent_answers",
+                                       "books_refusal"})
         self.assertIn("books", update["sources"])
 
 

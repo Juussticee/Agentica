@@ -1,0 +1,199 @@
+{
+  "version": "evidence_claims_v1",
+  "harness_version": "2026-11-01",
+  "description": "Adversarial fixtures for retrieval ranking and claim verification. Passages and expected verdicts are AUTHORITATIVE FIXTURES — never a model's output. Licence values come from the projects' published terms (Redis BSD-3, Memcached Apache 2.0); the wrong values in the claim cases are the audited failure modes.",
+  "mode": "offline_deterministic",
+  "mode_note": "Deterministic functions only: app.evidence.select and app.claim_check.verify. No model, no network, no vector store — so this measures ranking and classification behaviour, not real-world truth.",
+  "retrieval_cases": [
+    {
+      "id": "R1",
+      "note": "The answering passage has a LOWER similarity than a topical distractor.",
+      "question": "What licence is Redis distributed under?",
+      "passages": [
+        {"file_name": "topical.pdf", "page_label": "4", "score": 0.93,
+         "text": "Redis is a popular in-memory data store used as a cache and for queues."},
+        {"file_name": "licensing.pdf", "page_label": "2", "score": 0.78,
+         "text": "Redis is distributed under the BSD-3 licence."}
+      ],
+      "relevant": [1]
+    },
+    {
+      "id": "R2",
+      "note": "The answering passage is buried last by similarity.",
+      "question": "How much VRAM does the 70B model need?",
+      "passages": [
+        {"file_name": "a.pdf", "page_label": "1", "score": 0.91,
+         "text": "Model serving requires careful capacity planning across the fleet."},
+        {"file_name": "b.pdf", "page_label": "2", "score": 0.90,
+         "text": "Large language models are expensive to operate and tune."},
+        {"file_name": "c.pdf", "page_label": "3", "score": 0.88,
+         "text": "GPU memory is the main constraint for inference deployments."},
+        {"file_name": "d.pdf", "page_label": "5", "score": 0.70,
+         "text": "The 70B model needs 140 GB of VRAM for fp16 inference."}
+      ],
+      "relevant": [3]
+    },
+    {
+      "id": "R3",
+      "note": "Same vocabulary, different subject: Redis material must not answer a Memcached licence question.",
+      "question": "What licence is Memcached distributed under?",
+      "passages": [
+        {"file_name": "redis.pdf", "page_label": "1", "score": 0.90,
+         "text": "Redis is distributed under the BSD-3 licence."},
+        {"file_name": "memcached.pdf", "page_label": "1", "score": 0.79,
+         "text": "Memcached is distributed under the Apache 2.0 licence."}
+      ],
+      "relevant": [1]
+    },
+    {
+      "id": "R4",
+      "note": "The same chunk retrieved twice must not fill the context.",
+      "question": "What does Redis keep in memory?",
+      "passages": [
+        {"file_name": "arch.pdf", "page_label": "3", "score": 0.90,
+         "text": "Redis keeps its entire dataset in memory."},
+        {"file_name": "arch.pdf", "page_label": "3", "score": 0.89,
+         "text": "Redis keeps its entire dataset in memory."}
+      ],
+      "relevant": [0]
+    },
+    {
+      "id": "R5",
+      "note": "A two-part question needs evidence from two documents.",
+      "question": "What licence is Redis distributed under and how much VRAM does it need?",
+      "passages": [
+        {"file_name": "licensing.pdf", "page_label": "2", "score": 0.82,
+         "text": "Redis is distributed under the BSD-3 licence."},
+        {"file_name": "capacity.pdf", "page_label": "7", "score": 0.80,
+         "text": "Redis needs 2 GB of VRAM for this benchmark workload."},
+        {"file_name": "unrelated.pdf", "page_label": "1", "score": 0.84,
+         "text": "Redis is a widely used cache and message broker."}
+      ],
+      "relevant": [0, 1]
+    },
+    {
+      "id": "R6",
+      "note": "Paraphrased question: the corpus says 'risks', the user asks about 'harms'.",
+      "question": "Which AI harms does the framework cover?",
+      "passages": [
+        {"file_name": "rmf.pdf", "page_label": "9", "score": 0.83,
+         "text": "The framework addresses AI risks to individuals and society."}
+      ],
+      "relevant": [0]
+    }
+  ],
+  "claim_cases": [
+    {
+      "id": "C1",
+      "note": "Claim directly supported by its cited passage.",
+      "answer": "Redis is distributed under the BSD-3 licence.",
+      "passages": [
+        {"file_name": "licensing.pdf", "page_label": "2",
+         "text": "Redis is distributed under the BSD-3 licence."}
+      ],
+      "expect": ["supported"]
+    },
+    {
+      "id": "C2",
+      "note": "Partially supported: the passage covers most of the claim.",
+      "answer": "Redis is distributed under the BSD-3 licence for the enterprise edition.",
+      "passages": [
+        {"file_name": "licensing.pdf", "page_label": "2",
+         "text": "Redis is distributed under the BSD-3 licence."}
+      ],
+      "expect": ["partial"]
+    },
+    {
+      "id": "C3",
+      "note": "Topically related but unsupported comparison.",
+      "answer": "Redis is 10x faster than Memcached.",
+      "passages": [
+        {"file_name": "arch.pdf", "page_label": "3",
+         "text": "Redis keeps its entire dataset in memory."}
+      ],
+      "expect": ["unsupported"]
+    },
+    {
+      "id": "C4",
+      "note": "Contradicted by the cited passage's polarity.",
+      "answer": "Redis supports clustering.",
+      "passages": [
+        {"file_name": "arch.pdf", "page_label": "3",
+         "text": "Redis does not support clustering in this version."}
+      ],
+      "expect": ["contradicted"]
+    },
+    {
+      "id": "C5",
+      "note": "Unsupported percentage (the audited fabricated figure).",
+      "answer": "The cache reduces database load by 30-50%.",
+      "passages": [
+        {"file_name": "bench.pdf", "page_label": "8",
+         "text": "The cache reduces database load by 40% in the vendor's tests."}
+      ],
+      "expect": ["unsupported"]
+    },
+    {
+      "id": "C6",
+      "note": "Unsupported licensing claim (the audited Redis defect).",
+      "answer": "Redis is distributed under the MIT licence.",
+      "passages": [
+        {"file_name": "licensing.pdf", "page_label": "2",
+         "text": "Redis is distributed under the BSD-3 licence."}
+      ],
+      "expect": ["contradicted"]
+    },
+    {
+      "id": "C7",
+      "note": "Incorrect technical specification: the port is not in the passage.",
+      "answer": "Redis listens on port 7000 by default.",
+      "passages": [
+        {"file_name": "config.pdf", "page_label": "4",
+         "text": "Redis listens on port 6379 by default."}
+      ],
+      "expect": ["unsupported"]
+    },
+    {
+      "id": "C8",
+      "note": "Two individually true facts combined into an unsupported conclusion.",
+      "answer": "Redis is in memory and therefore twice as fast as Memcached.",
+      "passages": [
+        {"file_name": "arch.pdf", "page_label": "3",
+         "text": "Redis keeps its entire dataset in memory."}
+      ],
+      "expect": ["unsupported"]
+    },
+    {
+      "id": "C9",
+      "note": "Fabricated citation: the named file was never retrieved.",
+      "answer": "Redis is distributed under the BSD-3 licence (legal_review.pdf, page 9).",
+      "passages": [
+        {"file_name": "licensing.pdf", "page_label": "2",
+         "text": "Redis is distributed under the BSD-3 licence."}
+      ],
+      "expect": ["unsupported"]
+    },
+    {
+      "id": "C10",
+      "note": "Citation points at the wrong retrieved document.",
+      "answer": "Redis is distributed under the BSD-3 licence (architecture.pdf, page 5).",
+      "passages": [
+        {"file_name": "licensing.pdf", "page_label": "2",
+         "text": "Redis is distributed under the BSD-3 licence."},
+        {"file_name": "architecture.pdf", "page_label": "5",
+         "text": "Redis keeps its entire dataset in memory."}
+      ],
+      "expect": ["unsupported"]
+    },
+    {
+      "id": "C11",
+      "note": "Outdated source: the passage names version 6, the answer claims 8. A version number the passage never states is UNSUPPORTED, not partially supported — the words overlap, the value does not.",
+      "answer": "The current release is Redis 8.",
+      "passages": [
+        {"file_name": "release.pdf", "page_label": "1",
+         "text": "Redis 6 was the current release when this note was written."}
+      ],
+      "expect": ["unsupported"]
+    }
+  ]
+}

@@ -106,6 +106,13 @@ INDEX_MANIFEST = STORAGE_DIR / ".index_manifest.json"
 ERP_LOG_PATH = PROJECT_ROOT / "logs" / "erp_actions.log"
 REPORTS_DIR = PROJECT_ROOT / "reports"            # feasibility_agent .docx output
 
+# --- Workspace coding capability (2026-10-30) -----------------------------
+# ABSOLUTE path of the ONE directory the coding workflow may read (and, only
+# after an approval, patch). Empty (the default) DISABLES the capability: no
+# routing decision changes and no file is ever read. There is deliberately no
+# default workspace — the operator must choose one explicitly.
+CODING_WORKSPACE_ROOT = os.getenv("CODING_WORKSPACE_ROOT", "")
+
 # --- Books retrieval tuning ---
 CHROMA_COLLECTION = "books"
 # Below this cosine similarity, books_agent refuses per the RAG grounding
@@ -115,7 +122,37 @@ CHROMA_COLLECTION = "books"
 # refusal presents no evidence, so it cites none).
 BOOKS_MIN_SCORE = 0.35
 BOOKS_TOP_K = 3
+
+# --- General-route evidence (2026-11-01) ----------------------------------
+# The general route checks the SAME persisted index before answering from
+# model knowledge. A passage is only treated as evidence when its similarity
+# clears the floor AND it shares enough of the question's own content words
+# (a score alone is not support). Below either bound the answer says it is
+# from model knowledge instead of citing a passage that does not cover it.
+EVIDENCE_TOP_K = int(os.getenv("EVIDENCE_TOP_K", "4"))
+EVIDENCE_MIN_SCORE = float(os.getenv("EVIDENCE_MIN_SCORE", "0.45"))
+EVIDENCE_MIN_COVERAGE = float(os.getenv("EVIDENCE_MIN_COVERAGE", "0.6"))
+# Bound on the passage text placed in one prompt (and kept in state for QA).
+EVIDENCE_PASSAGE_CHARS = int(os.getenv("EVIDENCE_PASSAGE_CHARS", "6000"))
+# Per-PASSAGE bound for the persisted evidence snapshot (2026-11-02). This is
+# deliberately NOT the prompt budget: using one cumulative budget for the
+# prompt AND for persistence silently dropped the passages that did not fit
+# (the live 3-of-4 truncation). Persistence keeps every consulted passage with
+# its own cap, and marks a passage `truncated` instead of dropping it.
+EVIDENCE_SNAPSHOT_CHARS = int(os.getenv("EVIDENCE_SNAPSHOT_CHARS", "8000"))
 NOT_FOUND_PHRASE = "The requested information was not found in the books."
+
+# --- Orchestrated knowledge fallback (2026-10-25 additional phase) --------
+# "1" (default): when the books agent REFUSES on the direct books route and
+# the question is not local-only / document-scoped, the graph hands the
+# ORIGINAL question to the existing research agent (exactly one transition —
+# books -> research -> END in app/graph.py, so fallback loops are impossible).
+# "0": pre-fallback behavior, a books refusal is terminal.
+# Local-only / document-scoped questions never fall back regardless of this
+# switch (app/supervisor.py _LOCAL_ONLY_RE / _DOC_DEICTIC_RE).
+BOOKS_WEB_FALLBACK = os.getenv("BOOKS_WEB_FALLBACK", "1") not in (
+    "0", "false", "off", "no"
+)
 
 # --- Ingest integrity / resource limits (M2) -------------------------------
 # Both caps are enforced BEFORE a file's text is decoded: the size check runs

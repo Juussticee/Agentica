@@ -1,42 +1,48 @@
 import { useEffect, useState } from 'react'
-import type { Execution } from '../api/types'
-import { listExecutions, createExecution } from '../api/client'
+import { createExecution, listExecutions } from '../api/client'
+import { getDashboardSummary, type DashboardSummary } from '../api/catalog'
 import { useHealth } from '../api/health'
 import { Loading, Empty, ErrorCard, StatusBadge, Button } from '../components/ui'
 import { AiReadinessPanel } from '../components/AiReadiness'
+import { allowlistedClass } from '../lib/classSuffix'
+
+const SEVERITIES = ['info', 'warning', 'error'] as const
 
 export default function Dashboard({ onNavigate }: { onNavigate: (to: string) => void }) {
   const { health, error: healthError } = useHealth()
-  const [execs, setExecs] = useState<Execution[] | null>(null)
-  const [listError, setListError] = useState<string | null>(null)
+  const [summary, setSummary] = useState<DashboardSummary | null>(null)
+  const [summaryError, setSummaryError] = useState<string | null>(null)
+  const [execs, setExecs] = useState<Awaited<ReturnType<typeof listExecutions>>['executions'] | null>(null)
   const [busy, setBusy] = useState(false)
   const [runError, setRunError] = useState<{ message: string; why?: string } | null>(null)
   const [lastId, setLastId] = useState<string | null>(null)
 
   async function refresh() {
     try {
-      const r = await listExecutions()
-      setExecs(r.executions)
-      setListError(null)
+      const [summaryData, list] = await Promise.all([
+        getDashboardSummary(),
+        listExecutions().catch(() => null),
+      ])
+      setSummary(summaryData)
+      if (list) setExecs(list.executions)
+      setSummaryError(null)
     } catch (e) {
-      setListError(e instanceof Error ? e.message : String(e))
+      setSummaryError(e instanceof Error ? e.message : String(e))
     }
   }
 
-  useEffect(() => {
-    refresh()
-  }, [])
+  useEffect(() => { refresh() }, [])
 
-  // Poll while anything is running (real progress only; no fake states).
+  // Poll only while something is actually running.
   useEffect(() => {
-    const anyActive = (execs ?? []).some((x) => x.status === 'running' || x.status === 'queued')
-    if (!anyActive) return
-    const t = setInterval(refresh, 1000)
+    const active = (summary?.executions.active ?? 0) > 0
+    if (!active) return
+    const t = setInterval(refresh, 2000)
     return () => clearInterval(t)
-  }, [execs])
+  }, [summary?.executions.active])
 
   async function quickRun() {
-    const question = "What does chapter 3 say about propolis?"
+    const question = 'What does chapter 3 say about propolis?'
     setBusy(true)
     setRunError(null)
     try {
@@ -52,8 +58,10 @@ export default function Dashboard({ onNavigate }: { onNavigate: (to: string) => 
     }
   }
 
-  const failed = (execs ?? []).filter((x) => x.status === 'failed')
-  const recent = (execs ?? []).slice(0, 5)
+  const recent = summary?.recent_executions ?? (execs ?? []).slice(0, 5).map((x) => ({
+    id: x.id, question: x.question, status: x.status, route: x.route ?? null,
+    created_at: x.created_at, completed_at: x.completed_at ?? null, has_plan: false,
+  }))
 
   return (
     <div>
@@ -65,75 +73,137 @@ export default function Dashboard({ onNavigate }: { onNavigate: (to: string) => 
           recovery="Make sure the API is running (python -m app.api.server), then retry."
         />
       )}
+      {summaryError && <ErrorCard message={summaryError} recovery="Refresh the page; the backend may still be starting." />}
 
-      <div className="grid">
-        <section className="card">
-          <h2>System health</h2>
-          {health ? (
-            <ul className="health-list">
-              <li>Agent system: <strong>{health.backend === 'ok' ? 'Working' : health.backend}</strong></li>
-              <li>Backend version: <strong>{health.version ?? '-'}</strong></li>
-            </ul>
-          ) : (
-            !healthError && <Loading label="Checking system health…" />
-          )}
-        </section>
+      {!summary && !summaryError && <Loading label="Reading the operational summary…" />}
 
-        <AiReadinessPanel ai={health?.ai ?? null} />
-      </div>
+      {summary && (
+        <>
+          <div className="tiles">
+            <button type="button" className="tile" onClick={() => onNavigate('executions')}>
+              <span className="tile__value">{summary.executions.total}</span>
+              <span className="tile__label">Executions</span>
+              <span className="tile__hint">{summary.executions.active} active · {summary.executions.last_24h} in 24h</span>
+            </button>
+            <button type="button" className="tile" onClick={() => onNavigate('approvals')}>
+              <span className="tile__value">{summary.approvals.pending}</span>
+              <span className="tile__label">Pending approvals</span>
+              <span className="tile__hint">
+                {summary.executions.waiting_approval} run(s) paused
+              </span>
+            </button>
+            <button type="button" className="tile" onClick={() => onNavigate('agents')}>
+              <span className="tile__value">{summary.agents.available}/{summary.agents.registered}</span>
+              <span className="tile__label">Agents available</span>
+              <span className="tile__hint">
+                {summary.agents.disabled} disabled · {summary.agents.unavailable} unavailable
+              </span>
+            </button>
+            <button type="button" className="tile" onClick={() => onNavigate('skills')}>
+              <span className="tile__value">{summary.skills.installed}/{summary.skills.total}</span>
+              <span className="tile__label">Skills on disk</span>
+              <span className="tile__hint">Documented procedures (not executable)</span>
+            </button>
+          </div>
 
-      <section className="card">
-        <h2>Quick start</h2>
-        <p className="muted">Runs a sample books question against the real workflow.</p>
-        <Button onClick={quickRun} disabled={busy}>
-          {busy ? 'Starting execution…' : 'Run sample execution'}
-        </Button>
-        {runError && <ErrorCard message={runError.message} why={runError.why} onDismiss={() => setRunError(null)} />}
-        {lastId && !runError && (
-          <p className="muted">Last started: #{lastId}</p>
-        )}
-      </section>
+          <div className="grid">
+            <section className="card">
+              <h2>System health</h2>
+              <ul className="health-list">
+                <li>Agent system: <strong>{summary.health.backend === 'ok' ? 'Working' : summary.health.backend}</strong></li>
+                <li>Storage: <strong>{summary.health.storage === 'ok' ? 'Connected' : summary.health.storage}</strong></li>
+                <li>Execution infrastructure: <strong>local runner (single process)</strong></li>
+                <li>Backend version: <strong>{health?.version ?? '-'}</strong></li>
+              </ul>
+            </section>
+            <AiReadinessPanel ai={health?.ai ?? null} />
+          </div>
 
-      {failed.length > 0 && (
-        <section className="card card--warn">
-          <h2>Needs attention ({failed.length})</h2>
-          <ul className="exec-mini-list">
-            {failed.map((x) => (
-              <li key={x.id}>
-                <a href={`#/executions/${encodeURIComponent(x.id)}`}>#{x.id}</a> — {x.question}
-                <div className="muted">{x.error?.human_message}</div>
-              </li>
-            ))}
-          </ul>
-        </section>
+          <section className="card">
+            <h2>Needs attention ({summary.attention.length})</h2>
+            {summary.attention.length === 0 ? (
+              <p className="muted">Nothing failed and nothing is waiting for a decision.</p>
+            ) : (
+              <ul className="exec-mini-list">
+                {summary.attention.map((item) => (
+                  <li key={item.id}>
+                    <a href={`#/executions/${encodeURIComponent(item.id)}`}>#{item.id}</a>
+                    {' '}<StatusBadge status={item.status as never} /> — {item.question}
+                    <div className="muted">
+                      {item.human_message ?? (item.status === 'waiting_for_approval'
+                        ? 'Paused until you decide in Approval Center.'
+                        : 'No structured error was recorded.')}
+                      {item.category && <> · category: {item.category}</>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="card">
+            <h2>Recent executions</h2>
+            {recent.length === 0 ? (
+              <Empty>No executions yet. Start one from Quick start or New Execution.</Empty>
+            ) : (
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr><th>ID</th><th>Request</th><th>Route</th><th>Status</th><th>Created</th></tr>
+                  </thead>
+                  <tbody>
+                    {recent.map((x) => (
+                      <tr key={x.id}>
+                        <td><a href={`#/executions/${encodeURIComponent(x.id)}`}>#{x.id}</a></td>
+                        <td className="truncate">{x.question}</td>
+                        <td>{x.route ?? '—'}</td>
+                        <td><StatusBadge status={x.status as never} /></td>
+                        <td>{new Date(x.created_at).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className="card">
+            <h2>Recent activity</h2>
+            <p className="muted">Recorded events across the most recent executions.</p>
+            {summary.activity.length === 0 ? (
+              <Empty>No events recorded yet.</Empty>
+            ) : (
+              <ol className="timeline">
+                {summary.activity.map((item, index) => (
+                  <li
+                    key={`${item.execution_id}-${item.at}-${index}`}
+                    className={allowlistedClass('timeline__item', 'timeline__item--', SEVERITIES, item.severity)}
+                  >
+                    <span className="timeline__time">{new Date(item.at).toLocaleTimeString()}</span>
+                    <span className="timeline__msg">{item.message}</span>
+                    <span className="timeline__meta muted">
+                      <a href={`#/executions/${encodeURIComponent(item.execution_id)}`}>
+                        #{item.execution_id}
+                      </a>
+                      {item.agent_id ? ` · ${item.agent_id}` : ''} · {item.type}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+
+          <section className="card">
+            <h2>Quick start</h2>
+            <p className="muted">Runs a sample books question against the real workflow.</p>
+            <Button onClick={quickRun} disabled={busy}>
+              {busy ? 'Starting execution…' : 'Run sample execution'}
+            </Button>
+            {runError && <ErrorCard message={runError.message} why={runError.why} onDismiss={() => setRunError(null)} />}
+            {lastId && !runError && <p className="muted">Last started: #{lastId}</p>}
+          </section>
+        </>
       )}
-
-      <section className="card">
-        <h2>Recent executions</h2>
-        {listError ? (
-          <ErrorCard message={listError} />
-        ) : execs === null ? (
-          <Loading />
-        ) : recent.length === 0 ? (
-          <Empty>No executions yet. Start one from Quick start or New Execution.</Empty>
-        ) : (
-          <table className="table">
-            <thead>
-              <tr><th>ID</th><th>Request</th><th>Status</th><th>Created</th></tr>
-            </thead>
-            <tbody>
-              {recent.map((x) => (
-                <tr key={x.id}>
-                  <td><a href={`#/executions/${encodeURIComponent(x.id)}`}>#{x.id}</a></td>
-                  <td className="truncate">{x.question}</td>
-                  <td><StatusBadge status={x.status} /></td>
-                  <td>{new Date(x.created_at).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
     </div>
   )
 }

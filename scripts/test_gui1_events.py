@@ -10,6 +10,7 @@ import tempfile
 import unittest
 import uuid
 from pathlib import Path
+from unittest import mock
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -142,6 +143,105 @@ class TestRunnerLifecycle(unittest.TestCase):
         # qa_flags exists even when empty (Phase 5 gate ran)
         self.assertEqual(done["qa_flags"], [] or done["qa_flags"])
 
+    def test_pending_research_approval_has_waiting_status_not_completed(self):
+        from app.execution.store import STATUS_WAITING_APPROVAL
+        from app.graph import approval_scope
+
+        e = self.runner.create("Search the latest AI news")
+        final_state = {
+            "question": "Search the latest AI news",
+            "route": "research",
+            "answer": "I have NOT searched the web for this yet. Approval request ID: abcdef123456",
+            "sources": [],
+            "qa_flags": [],
+        }
+        graph = type("Graph", (), {"invoke": lambda _self, _state: final_state})()
+        with mock.patch("app.graph.build_graph", return_value=graph):
+            # The same scoped store is used by production GraphRunner.run.
+            with approval_scope(self.store, e["id"]):
+                self.store.create_or_reuse_approval(
+                    operation="research", description="Web search for latest AI news",
+                    payload={"question": final_state["question"], "route": "research"},
+                    execution_id=e["id"],
+                )
+                done = self.runner.run(e["id"])
+
+        self.assertEqual(done["status"], STATUS_WAITING_APPROVAL)
+        self.assertIsNone(done["error"])
+        self.assertEqual(self.store.get_events(e["id"])[-1]["type"],
+                         ev.EXECUTION_WAITING_APPROVAL)
+
+    def test_pending_approval_wins_over_incomplete_plan_status(self):
+        """A plan paused by a pending approval is WAITING, not failed: the
+        unfinished tasks are a consequence of the pause, not a defect."""
+        from app.execution.store import STATUS_WAITING_APPROVAL
+        from app.graph import approval_scope
+
+        e = self.runner.create("Research then summarize the latest AI news")
+        final_state = {
+            "question": "Research then summarize the latest AI news",
+            "route": "research",
+            "answer": "I have NOT searched the web for this yet. Approval request ID: feedbeef0001",
+            "sources": [],
+            "qa_flags": ["QA: plan incomplete — task(s) not completed: t2"],
+            "plan": {"source": "test", "tasks": [
+                {"task_id": "t1", "capability": "research", "status": "failed",
+                 "error": "external web research was not authorized — an approval request is pending"},
+                {"task_id": "t2", "capability": "synthesis", "status": "blocked",
+                 "block_reason": "a dependency did not complete successfully"},
+            ]},
+        }
+        graph = type("Graph", (), {"invoke": lambda _self, _state: final_state})()
+        with mock.patch("app.graph.build_graph", return_value=graph):
+            with approval_scope(self.store, e["id"]):
+                self.store.create_or_reuse_approval(
+                    operation="research",
+                    description="Web search for latest AI news",
+                    payload={"question": final_state["question"],
+                             "route": "research"},
+                    execution_id=e["id"],
+                )
+                done = self.runner.run(e["id"])
+
+        self.assertEqual(done["status"], STATUS_WAITING_APPROVAL)
+        self.assertIsNone(done["error"], "a paused run must not claim failure")
+        self.assertIsNotNone(done["plan"], "the plan stays visible for the UI")
+        last = self.store.get_events(e["id"])[-1]
+        self.assertEqual(last["type"], ev.EXECUTION_WAITING_APPROVAL)
+        self.assertNotEqual(last["payload"].get("category"), "incomplete_plan")
+
+    def test_incomplete_plan_is_failed_not_completed_and_preserves_answer(self):
+        e = self.runner.create("Create a multi-step report")
+        final_state = {
+            "question": "Create a multi-step report",
+            "route": "books",
+            "answer": "Partial result from completed work.",
+            "sources": ["books"],
+            "agent_answers": {"books": "Partial result from completed work."},
+            "qa_flags": ["QA: plan incomplete — task(s) not completed: t2"],
+            "plan": {"source": "test", "tasks": [
+                {"task_id": "t1", "capability": "books", "status": "completed"},
+                {"task_id": "t2", "capability": "synthesis", "status": "blocked",
+                 "block_reason": "dependency failed"},
+            ]},
+        }
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        graph = SimpleNamespace(invoke=lambda _state: final_state)
+        with patch("app.graph.build_graph", return_value=graph):
+            done = self.runner.run(e["id"])
+
+        self.assertEqual(done["status"], "failed")
+        self.assertEqual(done["answer"], final_state["answer"])
+        self.assertEqual(done["qa_flags"], final_state["qa_flags"])
+        self.assertEqual(done["error"]["category"], "incomplete_plan")
+        self.assertEqual(done["error"]["details"]["incomplete_tasks"][0]["status"],
+                         "blocked")
+        events = self.store.get_events(e["id"])
+        self.assertEqual(events[-1]["type"], ev.EXECUTION_FAILED)
+        self.assertEqual(events[-1]["payload"]["category"], "incomplete_plan")
+
     def test_ai_failure_is_failed_not_completed(self):
         self._failing_research()
         e = self.runner.create("Latest AI news this week")
@@ -201,8 +301,14 @@ class TestGraphWrapperHook(unittest.TestCase):
             g = gm.build_graph(node_wrapper=wrapper)
             g.invoke({"question": "What does chapter 3 say about propolis?"})
             # wrapper only records reading, not wrapping; 'qa' is never wrapped
-            # wrapper wraps all five agent nodes; qa is deliberately NOT wrapped
-            self.assertEqual(sorted(seen), ["books", "erp", "feasibility", "research", "supervisor"])
+            # wrapper wraps every answer node (2026-10-28: +general
+            # +unsupported; 2026-10-30: +coding, +data, +followup, +feedback
+            # (the feedback node records a learning signal, so it must appear
+            # in the timeline); qa is deliberately NOT wrapped
+            self.assertEqual(sorted(seen), ["books", "coding", "data", "erp",
+                                            "feasibility", "feedback",
+                                            "followup", "general", "research",
+                                            "supervisor", "unsupported"])
 
             # default path unchanged
             seen.clear()

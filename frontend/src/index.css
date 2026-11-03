@@ -127,6 +127,7 @@ h2 { margin: 0 0 10px; font-size: 17px; }
 .badge--completed { background: var(--ok-bg); color: #047857; }
 .badge--failed { background: var(--err-bg); color: #b91c1c; }
 .badge--cancelled { background: #f1f5f9; color: #64748b; }
+.badge--waiting_for_approval { background: #fffbeb; color: #b45309; border: 1px solid #fcd34d; }
 
 /* Buttons */
 .btn {

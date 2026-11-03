@@ -10,8 +10,13 @@ UnicodeEncodeError.
 
 import asyncio
 import sys
+import time
 from contextlib import redirect_stderr
 from io import StringIO
+from urllib.parse import urlparse
+
+from app.execution.events import TOOL_COMPLETED, TOOL_FAILED
+from app.execution.instrumentation import emit
 
 
 def _ascii(text: str, limit: int = 200) -> str:
@@ -30,11 +35,38 @@ def _crawl(url: str) -> str:
 
 
 def extract(url: str) -> str:
-    """Fetch and return clean text for a URL; "" on failure — never raises."""
+    """Fetch and return clean text for a URL; "" on failure — never raises.
+
+    W2: records the outcome as an event while it happens — the host and the
+    amount of text obtained, never the page content itself.
+    """
+    started = time.perf_counter()
+    host = urlparse(url).netloc[:80]
     try:
         with redirect_stderr(StringIO()):  # crawl4ai logs startup noise to stderr
             text = _crawl(url)
-        return (text or "").strip()
+        text = (text or "").strip()
+        emit(
+            TOOL_COMPLETED,
+            f"Page extraction finished ({len(text)} chars)",
+            payload={
+                "tool": "crawl.extract",
+                "host": host,
+                "chars": len(text),
+                "duration_ms": round((time.perf_counter() - started) * 1000),
+            },
+        )
+        return text
     except Exception as exc:  # noqa: BLE001 — tool boundary, must not raise
         print(f"[crawl_extractor] extract failed ({type(exc).__name__}): {_ascii(str(exc))}")
+        emit(
+            TOOL_FAILED,
+            "Page extraction failed",
+            payload={
+                "tool": "crawl.extract",
+                "host": host,
+                "error_type": type(exc).__name__,
+                "duration_ms": round((time.perf_counter() - started) * 1000),
+            },
+        )
         return ""

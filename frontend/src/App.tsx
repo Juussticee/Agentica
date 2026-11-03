@@ -7,6 +7,10 @@ import Executions from './pages/Executions'
 import ExecutionDetail from './pages/ExecutionDetail'
 import Services from './pages/Services'
 import Agents from './pages/Agents'
+import Skills from './pages/Skills'
+import Learning from './pages/Learning'
+import Memory from './pages/Memory'
+import Approvals from './pages/Approvals'
 import TasksSequence from './pages/TasksSequence'
 import Settings from './pages/Settings'
 import { viewFromHash, type View } from './lib/routes'
@@ -63,6 +67,9 @@ export default function App() {
   const ICON_TASKS = <><path d="M4 6h16M4 12h16M4 18h10" /></>
   const ICON_PULSE = <><path d="M3 12h4l2.5-7 5 14 2.5-7H21" /></>
   const ICON_BOT = <><rect x="4" y="8" width="16" height="12" rx="2" /><path d="M12 4v4M9 14h.01M15 14h.01" /></>
+  const ICON_ARCHIVE = <><rect x="3" y="4" width="18" height="5" rx="1" /><path d="M5 9v11h14V9M10 13h4" /></>
+  const ICON_SKILL = <><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6.1L12 16.9 6.6 19.6l1.2-6.1-4.5-4.2 6.1-.7z" /></>
+  const ICON_LEARN = <><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" /><path d="M8 13l2.5 2.5L16 10" /></>
   const ICON_GEAR = <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.35a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.65 15 1.7 1.7 0 0 0 3.08 14H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.65h.08A1.7 1.7 0 0 0 10.11 3.09V3a2 2 0 1 1 4 0v.09c0 .68.4 1.3 1.03 1.56.6.26 1.35.13 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.35 9c.26.62.88 1.03 1.56 1.03H21a2 2 0 1 1 0 4h-.09c-.68 0-1.3.4-1.51.97Z" /></>
 
   type NavItem = { to: string; key: string; label: string; icon: ReactNode; active: boolean }
@@ -75,6 +82,12 @@ export default function App() {
   const monitorItems: NavItem[] = [
     { to: 'services', key: 'services', label: 'Services', icon: ICON_PULSE, active: view.name === 'services' },
     { to: 'agents', key: 'agents', label: 'Agents', icon: ICON_BOT, active: view.name === 'agents' },
+    { to: 'approvals', key: 'approvals', label: 'Approval Center', icon: ICON_TASKS, active: view.name === 'approvals' },
+  ]
+  const knowledgeItems: NavItem[] = [
+    { to: 'memory', key: 'memory', label: 'Memory', icon: ICON_ARCHIVE, active: view.name === 'memory' },
+    { to: 'skills', key: 'skills', label: 'Skills', icon: ICON_SKILL, active: view.name === 'skills' },
+    { to: 'learning', key: 'learning', label: 'Learning', icon: ICON_LEARN, active: view.name === 'learning' },
   ]
   const configureItems: NavItem[] = [
     { to: 'settings', key: 'settings', label: 'Settings', icon: ICON_GEAR, active: view.name === 'settings' },
@@ -108,12 +121,11 @@ export default function App() {
     <>
       <NavGroup title="Operate" items={operateItems} />
       <NavGroup title="Monitor" items={monitorItems} />
+      <NavGroup title="Knowledge" items={knowledgeItems} />
       <NavGroup title="Configure" items={configureItems} />
 
       <div className="sidebar__planned">
         <div className="sidebar__planned-title">Planned (not implemented yet)</div>
-        <span title="Planned: real approval workflow">Approval Center</span>
-        <span title="Planned: knowledge management">Knowledge</span>
         <span title="Planned: chat entry surface">Chat</span>
         <span title="Planned: reports and artifacts">Reports</span>
       </div>
@@ -154,7 +166,11 @@ export default function App() {
           {view.name === 'executions' && <Executions />}
           {view.name === 'detail' && <ExecutionDetail id={view.id} />}
           {view.name === 'services' && <Services />}
-          {view.name === 'agents' && <Agents />}
+          {view.name === 'agents' && <Agents agentId={view.id} />}
+          {view.name === 'skills' && <Skills />}
+          {view.name === 'learning' && <Learning />}
+          {view.name === 'memory' && <Memory />}
+          {view.name === 'approvals' && <Approvals />}
           {view.name === 'tasks' && <TasksSequence />}
           {view.name === 'settings' && <Settings />}
         </div>

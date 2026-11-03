@@ -94,14 +94,27 @@ class CandidateSetTest(unittest.TestCase):
                                   "real-corpus case without v1 provenance")
 
     def test_no_fixture_files_claimed_exist(self):
-        # Pending cases must not pretend their fixture exists on disk.
+        # Pending cases must not pretend their fixture exists on disk — in
+        # EITHER direction: a claimed-absent fixture must be absent, and a
+        # documented blocker removal (provenance.blocker_removed, e.g. the
+        # C102 resolution realized in rag_gold_v3.json) must NOT point at a
+        # still-missing file. A stale note in either direction fails here.
         for case in self.cases:
-            if case["section"] == "pending_synthetic":
-                for doc in case["gold_documents"]:
-                    with self.subTest(case=case["id"], doc=doc):
+            if case["section"] != "pending_synthetic":
+                continue
+            blocker_removed = case["provenance"].get("blocker_removed")
+            for doc in case["gold_documents"]:
+                with self.subTest(case=case["id"], doc=doc):
+                    exists = (PROJECT_ROOT / "benchmarks" / "rag_fixtures"
+                              / doc).exists()
+                    if blocker_removed:
+                        self.assertTrue(
+                            exists,
+                            f"{doc} claimed removed-blocker but is missing — "
+                            f"stale blocker_removed note {blocker_removed!r}")
+                    else:
                         self.assertFalse(
-                            (PROJECT_ROOT / "benchmarks" / "rag_fixtures"
-                             / doc).exists(),
+                            exists,
                             f"{doc} exists — case can be un-blocked and "
                             f"reclassified")
 

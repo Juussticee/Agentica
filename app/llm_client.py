@@ -6,6 +6,8 @@ directly. Switching providers is a one-line change in app/config.py:
     LLM_PROVIDER = "gemini"   #  ->  "ollama"  (original spec behavior)
 """
 
+import re
+
 from app.config import (
     FALLBACK_MODEL,
     GEMINI_MODEL,
@@ -80,6 +82,79 @@ def get_llm(fast: bool = False, timeout: float | None = None):
         f"Unknown LLM_PROVIDER={LLM_PROVIDER!r} (expected 'gemini' or 'ollama'); "
         f"fallback model {FALLBACK_MODEL!r} is only used manually per spec."
     )
+
+
+_ECHO_MIN_WORDS = 5
+# 0.5 because a local model PARAPHRASES the instruction it echoes ("the request
+# asks for code" -> "the question requires code"): the live paraphrase scored
+# 0.56 against its source sentence while genuine content scored under 0.2.
+_ECHO_COVERAGE = 0.5
+# The model also narrates its own answer ("**Note**: The revised answer
+# explicitly covers ..."), which shares no wording with the instruction. Such a
+# line states what the answer is supposed to contain, never what it contains.
+# Lines that are ONLY meta: an empty "**Final Check:**" heading, or the
+# model reporting that it followed formatting rules. Neither carries content.
+_META_ONLY_RE = re.compile(
+    r"^\s*(?:[-*]\s*)?\*{0,2}\s*(?:final\s+)?(?:note|check)\s*\*{0,2}"
+    r"\s*:?\s*\*{0,2}\s*$"
+    r"|^\s*(?:[-*]\s*)?the answer (?:is|has been|was) "
+    r"(?:formatted|stated|provided) as requested",
+    re.IGNORECASE,
+)
+
+_META_NOTE_RE = re.compile(
+    r"^\s*(?:\*\*|-\s*)?(?:final\s+)?(?:note|check)\b.*\b(?:revised answer|"
+    r"requires code|cannot provide|one sentence|instruction|user named|"
+    r"formatted as requested|every requirement)",
+    re.IGNORECASE,
+)
+_WORD_RE = re.compile(r"[a-z0-9]{4,}")
+_SENTENCE_SPLIT_RE = re.compile(r"[.!?\n]+")
+
+
+def strip_instruction_echo(text: str, instructions: str) -> str:
+    """Drop lines that only repeat the prompt's own instructions.
+
+    A small local model copies the prompt back into its answer: the
+    2026-10-31 live audit had a general answer end with "Note: If the question
+    requires code or a draft, I cannot provide that here.", and a feedback
+    revision end with "If something cannot be supplied without running the
+    task again, say so in one sentence at the end." Those are our instructions
+    to ourselves, not an answer to the user, so they are removed before the
+    text is stored.
+
+    Deterministic and deliberately conservative: a line is dropped only when
+    it has at least five words AND at least 70% of those words appear in a
+    single instruction sentence, so normal content (which reuses at most a
+    few instruction words) is never touched. Returns the text unchanged when
+    nothing matches.
+    """
+    body = str(text or "")
+    source = str(instructions or "")
+    if not body.strip() or not source.strip():
+        return body
+    sentences = [set(_WORD_RE.findall(part.lower()))
+                 for part in _SENTENCE_SPLIT_RE.split(source)]
+    sentences = [s for s in sentences if len(s) >= _ECHO_MIN_WORDS]
+    if not sentences:
+        return body
+
+    kept: list = []
+    for line in body.splitlines():
+        if _META_ONLY_RE.search(line):  # an empty meta heading, or a claim
+            continue                  # that the answer is nicely formatted
+        words = set(_WORD_RE.findall(line.lower()))
+        if len(words) >= _ECHO_MIN_WORDS and (
+                _META_NOTE_RE.search(line)
+                or any(len(words & sentence) / len(words) >= _ECHO_COVERAGE
+                       for sentence in sentences)):
+            continue
+        kept.append(line)
+    cleaned = "\n".join(kept).strip()
+    # Never return an empty answer: if the whole reply echoed the prompt, the
+    # caller's own empty-answer handling is the honest path, but blanking a
+    # mixed answer would lose the part that did answer.
+    return cleaned if cleaned.strip() else body
 
 
 def llm_text(response) -> str:

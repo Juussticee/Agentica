@@ -11,7 +11,6 @@ actions (POST /api/v1/ai/test) and are surfaced as a separate unknown state
 until verified.
 """
 
-import json
 import time
 import urllib.error
 import urllib.request
@@ -52,14 +51,6 @@ def _http_status(url: str, timeout: float = PROBE_TIMEOUT) -> Optional[int]:
         return None
 
 
-def _latency_ms(url: str) -> Optional[int]:
-    started = time.perf_counter()
-    status = _http_status(url)
-    if status is None:
-        return None
-    return int((time.perf_counter() - started) * 1000)
-
-
 def _classify_probe(status: Optional[int]) -> Dict[str, Any]:
     """Map a lightweight HTTP probe to the state vocabulary + reason."""
     if status is None:
@@ -90,11 +81,27 @@ def check_api(store_ok: bool) -> Dict[str, Any]:
     }
 
 
-def check_storage() -> Dict[str, Any]:
-    """SQLite execution persistence: open it and read one row."""
+def check_storage(store: Optional[Any] = None) -> Dict[str, Any]:
+    """SQLite execution persistence: open it and read one row.
+
+    `store` is the LIVE ExecutionStore of this process (optional so the
+    probe still works standalone). When supplied, its failed-event-write
+    counter from W2.1 degrades this row: event persistence is part of what
+    this service promises ("persists executions and events"), and a
+    timeline that is quietly losing rows must be visible somewhere the
+    dashboard already looks — without turning a successful execution into
+    a failure or adding a monitoring subsystem.
+    """
     import sqlite3
 
     from app.execution.store import DEFAULT_DB_PATH
+
+    failed_events = 0
+    if store is not None:
+        try:
+            failed_events = int(getattr(store, "event_write_failures", 0) or 0)
+        except Exception:  # noqa: BLE001 — a probe never raises
+            failed_events = 0
 
     started = time.perf_counter()
     try:
@@ -109,19 +116,31 @@ def check_storage() -> Dict[str, Any]:
             reason = f"Database tables unavailable ({type(exc).__name__})."
         finally:
             conn.close()
+        state = RUNNING if ok else MISCONFIGURED
+        next_action = (None if ok else
+                       "The schema is created on server start; restart "
+                       "the API once to initialize it.")
+        if ok and failed_events:
+            # Storage answers, but writes are failing: the runs still
+            # complete with their answers (fail-soft), the timeline does not.
+            state = DEGRADED
+            reason = (f"{failed_events} execution event write(s) failed; "
+                      "affected runs keep their answer but their timeline "
+                      "has gaps.")
+            next_action = ("Check free space and permissions on storage/, "
+                           "then restart the API.")
         return {
             "id": "storage",
             "name": "Execution storage (SQLite)",
             "purpose": "Persists executions and events across restarts",
             "required": True,
-            "state": RUNNING if ok else MISCONFIGURED,
+            "state": state,
             "reason": reason,
             "latency_ms": int((time.perf_counter() - started) * 1000),
             "last_checked": _now(),
-            "next_action": (None if ok else
-                            "The schema is created on server start; restart "
-                            "the API once to initialize it."),
-            "config": {"path": str(DEFAULT_DB_PATH), "executions": n},
+            "next_action": next_action,
+            "config": {"path": str(DEFAULT_DB_PATH), "executions": n,
+                       "event_write_failures": failed_events},
         }
     except Exception as exc:
         return {
@@ -157,9 +176,17 @@ def check_ollama() -> Dict[str, Any]:
         "required": False,   # gemini default path does not use it
         "config": {"base_url": OLLAMA_BASE_URL, "model": MAIN_MODEL},
     }
-    status = _http_status(f"{url}/api/tags")
+    # Increment 2: ONE bounded read now serves probe + latency + model list
+    # (previously three separate GET /api/tags requests on every dashboard
+    # poll), and the model-presence rule is diagnostics_core.model_present —
+    # the same rule ai_diagnostics.check_ollama applies.
+    from app import diagnostics_core as core
+
+    started = time.perf_counter()
+    status, tags, _category = core.fetch_ollama_tags(url, timeout=PROBE_TIMEOUT)
     probe = _classify_probe(status)
-    latency = _latency_ms(f"{url}/api/tags")
+    latency = (int((time.perf_counter() - started) * 1000)
+               if status is not None else None)
     result.update({
         "state": probe["state"],
         "reason": probe["reason"],
@@ -167,17 +194,15 @@ def check_ollama() -> Dict[str, Any]:
         "last_checked": _now(),
     })
     if probe["state"] == RUNNING:
-        # Cheap model-list read (same endpoint) — distinguish reachability
+        # Model-list read (same single request) — distinguish reachability
         # from "the configured model is actually installed".
         try:
-            req = urllib.request.Request(f"{url}/api/tags")
-            with urllib.request.urlopen(req, timeout=PROBE_TIMEOUT) as resp:
-                tags = json.loads(resp.read().decode("utf-8", "replace"))
-            names = [m.get("name") or m.get("model") for m in tags.get("models", [])]
-            names = [n for n in names if n]
+            if not isinstance(tags, dict) or not isinstance(
+                    tags.get("models", []), list):
+                raise ValueError("unreadable model list")
+            names = core.ollama_model_names(tags)
             result["config"]["available_models"] = names[:20]
-            model_ok = MAIN_MODEL in names or any(
-                (n or "").split(":")[0] == MAIN_MODEL for n in names)
+            model_ok = core.model_present(MAIN_MODEL, names)
             if not model_ok:
                 result["state"] = DEGRADED
                 result["reason"] = (f"Endpoint is up, but the configured model "
@@ -311,11 +336,15 @@ def _not_configured(sid: str, name: str, purpose: str, what_now: str,
     }
 
 
-def services_snapshot() -> Dict[str, Any]:
-    """Run every bounded check; assemble the dashboard-ready payload."""
+def services_snapshot(store: Optional[Any] = None) -> Dict[str, Any]:
+    """Run every bounded check; assemble the dashboard-ready payload.
+
+    `store` (optional) is the live ExecutionStore, used only to report
+    failed event writes on the storage row.
+    """
     from app.execution.store import ExecutionStore, DEFAULT_DB_PATH
 
-    storage = check_storage()
+    storage = check_storage(store)
     payload = {
         "checked_at": _now(),
         "services": [
@@ -337,15 +366,16 @@ def services_snapshot() -> Dict[str, Any]:
             check_erp(),
         ],
     }
-    # Lightweight "AI provider readiness" rollup mirrors /health semantics
-    from app.ai_settings import effective_settings
-    eff = effective_settings()
+    # Lightweight "AI provider readiness" rollup — SAME underlying check as
+    # /health's `ai` block (diagnostics_core.provider_readiness, Increment 2),
+    # so the two status surfaces cannot disagree about what "configured"
+    # means. Route-specific fields (settings_url, note) stay here.
+    from app import diagnostics_core
+
+    readiness = diagnostics_core.provider_readiness()
     payload["ai_provider"] = {
-        "provider": eff.get("llm_provider"),
-        "state": ("ready" if (eff.get("llm_provider") == "gemini"
-                              and eff.get("gemini_api_key"))
-                  or (eff.get("llm_provider") == "ollama"
-                      and eff.get("ollama_base_url")) else "not_configured"),
+        "provider": readiness["provider"],
+        "state": readiness["state"],
         "settings_url": "/#/settings",
         "note": "Availability only; functional verification via "
                 "Settings → Test connection.",

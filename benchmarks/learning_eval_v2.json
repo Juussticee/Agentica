@@ -1,0 +1,983 @@
+{
+  "version": "learning_eval_v2",
+  "harness_version": 1,
+  "description": "A/B benchmark for Agentica's learning loop WITH calibration: the same task runs once without a lesson set (baseline) and once with the applicable active lessons, through the real GraphRunner, and the report also measures behavioural drift (overgeneralization, unnecessary restriction, clarification overuse, initiative retention, cross-capability regression, constraint accuracy, preference scope accuracy). Requirements are checked on the FINAL ANSWER, never on the prompt.",
+  "mode": "offline_deterministic",
+  "mode_note": "The provider is a scripted double (no network, no live model). It answers with the case's baseline_answer and appends the learned requirement text it was given, except for an explicit brevity directive, which it obeys by shortening. This makes the causal chain prompt -> answer -> requirement satisfaction fully deterministic. Live-model mode is a separate, labelled mode and is not used here.",
+  "lessons": [
+    {
+      "lesson_id": "fx-compare-depth",
+      "capability": "general",
+      "category": "preference",
+      "scope": "capability",
+      "feedback_type": "quality_feedback",
+      "impact": "quality_improvement",
+      "problem": "Model comparisons omitted benchmark, VRAM and licensing facts.",
+      "root_cause": "The depth of a comparison was never requested.",
+      "corrective_behavior": "Include benchmark numbers, VRAM requirements and licensing terms whenever two models are compared.",
+      "validation": "Every compared model states a benchmark figure, a VRAM requirement and a licence.",
+      "confidence": 0.9,
+      "keywords": [
+        "model",
+        "compare",
+        "benchmark",
+        "vram",
+        "licensing"
+      ]
+    },
+    {
+      "lesson_id": "fx-numbered-steps",
+      "capability": "general",
+      "category": "procedure",
+      "scope": "capability",
+      "feedback_type": "general_preference",
+      "impact": "preference_adjustment",
+      "problem": "Procedural answers were prose, hard to follow.",
+      "root_cause": "No format was requested.",
+      "corrective_behavior": "Present procedures as a numbered list: 1. define the corpus, 2. index it, 3. check citations at the end.",
+      "validation": "The answer contains numbered steps and a final check.",
+      "confidence": 0.85,
+      "keywords": [
+        "steps",
+        "procedure",
+        "pipeline",
+        "rag",
+        "list"
+      ]
+    },
+    {
+      "lesson_id": "fx-recommendation",
+      "capability": "general",
+      "category": "preference",
+      "scope": "capability",
+      "feedback_type": "general_preference",
+      "impact": "preference_adjustment",
+      "problem": "Answers explained options without saying which to choose.",
+      "root_cause": "The user's preference was never recorded before.",
+      "corrective_behavior": "End every answer with a line 'Recommendation: ...' naming the choice and one trade-off.",
+      "validation": "The last line starts with 'Recommendation:'.",
+      "confidence": 0.9,
+      "keywords": [
+        "recommend",
+        "choose",
+        "preference",
+        "trade-off"
+      ]
+    },
+    {
+      "lesson_id": "fx-too-brief",
+      "capability": "general",
+      "category": "preference",
+      "scope": "capability",
+      "feedback_type": "general_preference",
+      "impact": "preference_adjustment",
+      "problem": "A correction asked for answers that are never longer than necessary.",
+      "root_cause": "Brevity was requested more strongly than detail.",
+      "corrective_behavior": "Answer in a single short sentence; detailed explanation is unnecessary.",
+      "validation": "The answer is one sentence.",
+      "confidence": 0.6,
+      "keywords": [
+        "short",
+        "brief",
+        "concise"
+      ]
+    },
+    {
+      "lesson_id": "fx-books-format",
+      "capability": "books",
+      "category": "procedure",
+      "scope": "capability",
+      "feedback_type": "quality_feedback",
+      "impact": "quality_improvement",
+      "problem": "Document answers did not cite the passage they used.",
+      "root_cause": "Citation format was not requested for document answers.",
+      "corrective_behavior": "Quote the passage identifier for every claim taken from a document.",
+      "validation": "Each document claim names a passage.",
+      "confidence": 0.9,
+      "keywords": [
+        "document",
+        "chapter",
+        "passage",
+        "cite"
+      ]
+    },
+    {
+      "lesson_id": "fx-never-modify",
+      "capability": "any",
+      "category": "preference",
+      "scope": "any",
+      "feedback_type": "general_preference",
+      "impact": "constraint",
+      "restricts": true,
+      "problem": "A one-file restriction was generalised to the whole workspace.",
+      "root_cause": "The original instruction named one file; the lesson dropped that object.",
+      "corrective_behavior": "Never modify any file, in any project, for any request.",
+      "validation": "No file is modified.",
+      "confidence": 0.9,
+      "keywords": [
+        "modify",
+        "file",
+        "patch",
+        "workspace"
+      ],
+      "overgeneralization": [
+        {
+          "kind": "restriction_broadened",
+          "detail": "the user restricted one object ('this file') but the lesson has no such limit",
+          "blocking": true
+        }
+      ],
+      "review_reasons": [
+        "a restriction needs review before it can apply"
+      ]
+    },
+    {
+      "lesson_id": "fx-temp-config",
+      "capability": "general",
+      "category": "preference",
+      "scope": "workspace",
+      "temporary": true,
+      "feedback_type": "temporary_instruction",
+      "impact": "constraint",
+      "restricts": true,
+      "problem": "The user asked to leave one config file alone for this task.",
+      "root_cause": "A one-off instruction.",
+      "corrective_behavior": "Leave config/settings.yaml unchanged for this task.",
+      "validation": "settings.yaml is untouched.",
+      "confidence": 0.9,
+      "keywords": [
+        "config",
+        "settings",
+        "leave",
+        "unchanged"
+      ]
+    },
+    {
+      "lesson_id": "fx-autonomy",
+      "capability": "general",
+      "category": "procedure",
+      "scope": "capability",
+      "feedback_type": "general_preference",
+      "impact": "execution_improvement",
+      "problem": "The agent asked for confirmation instead of doing the work.",
+      "root_cause": "No initiative was ever requested.",
+      "corrective_behavior": "Carry the task out end to end and report the result instead of asking for confirmation.",
+      "validation": "The answer states what was done, and asks no permission question.",
+      "confidence": 0.85,
+      "keywords": [
+        "carry",
+        "through",
+        "end",
+        "done",
+        "result"
+      ]
+    },
+    {
+      "lesson_id": "fx-assumptions",
+      "capability": "general",
+      "category": "procedure",
+      "scope": "capability",
+      "feedback_type": "quality_feedback",
+      "impact": "quality_improvement",
+      "problem": "The agent stalled on an unstated detail instead of assuming it.",
+      "root_cause": "Assumptions were never made explicit.",
+      "corrective_behavior": "State the assumption you rely on and move on instead of asking.",
+      "validation": "The answer names its assumption and still answers.",
+      "confidence": 0.85,
+      "keywords": [
+        "assume",
+        "estimate",
+        "unstated",
+        "detail"
+      ]
+    },
+    {
+      "lesson_id": "fx-research-depth",
+      "capability": "research",
+      "category": "preference",
+      "scope": "capability",
+      "feedback_type": "quality_feedback",
+      "impact": "quality_improvement",
+      "problem": "Research comparisons skipped licensing and evidence.",
+      "root_cause": "Depth was not requested for research tasks.",
+      "corrective_behavior": "Cite licensing terms and one benchmark for every researched option.",
+      "validation": "Each researched option carries a licence and a benchmark.",
+      "confidence": 0.9,
+      "keywords": [
+        "research",
+        "licensing",
+        "benchmark",
+        "sources"
+      ]
+    },
+    {
+      "lesson_id": "fx-frustration-hedge",
+      "capability": "general",
+      "category": "preference",
+      "scope": "any",
+      "status": "candidate",
+      "feedback_type": "frustration",
+      "impact": "constraint",
+      "restricts": true,
+      "problem": "The user was frustrated after an answer stated a conclusion confidently.",
+      "root_cause": "Frustration was read as a request to stop concluding anything.",
+      "corrective_behavior": "Never state a conclusion unless the user verifies it first.",
+      "validation": "Every answer ends by asking the user to confirm the conclusion.",
+      "confidence": 0.4,
+      "keywords": [
+        "verify",
+        "confirm",
+        "conclusion"
+      ],
+      "review_reasons": [
+        "dissatisfaction without a stated requirement cannot be learned; held for review"
+      ]
+    },
+    {
+      "lesson_id": "fx-cite-always",
+      "capability": "general",
+      "category": "preference",
+      "scope": "any",
+      "status": "active",
+      "feedback_type": "general_preference",
+      "impact": "preference_adjustment",
+      "problem": "Claims were made without a source.",
+      "root_cause": "No standing preference had been stated.",
+      "corrective_behavior": "Cite a source for every factual claim.",
+      "validation": "Each factual claim names a source.",
+      "confidence": 0.9,
+      "keywords": [
+        "cite",
+        "source",
+        "claim"
+      ]
+    },
+    {
+      "lesson_id": "fx-no-citations-project",
+      "capability": "general",
+      "category": "preference",
+      "scope": "workspace",
+      "status": "candidate",
+      "feedback_type": "task_constraint",
+      "impact": "constraint",
+      "restricts": true,
+      "problem": "This project's readers already know the sources.",
+      "root_cause": "A context-specific wish was stated for one project only.",
+      "corrective_behavior": "Do not include citations in this project's answers.",
+      "validation": "No citation lines appear in this project's answers.",
+      "confidence": 0.5,
+      "keywords": [
+        "citations",
+        "sources",
+        "project"
+      ],
+      "review_reasons": [
+        "contradicts a lesson with a different context; both are kept and this one waits for review"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "task_id": "gen-plain",
+      "capability": "general",
+      "request": "What is a vector database?",
+      "baseline_answer": "A vector database stores embeddings and lets you search them by similarity using an approximate index.",
+      "requirements": [
+        {
+          "id": "explains-embeddings",
+          "label": "Explains embeddings",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "embedding"
+            ]
+          }
+        },
+        {
+          "id": "explains-index",
+          "label": "Names the index",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "index"
+            ]
+          }
+        }
+      ],
+      "lesson_ids": [],
+      "expected_outcome": "unchanged",
+      "notes": "Control case: no applicable lesson, so both conditions must be identical."
+    },
+    {
+      "task_id": "gen-model-compare",
+      "capability": "general",
+      "request": "Compare two small embedding models for my laptop.",
+      "baseline_answer": "Both models run locally. The smaller one uses less memory and is a little less accurate.",
+      "requirements": [
+        {
+          "id": "benchmarks",
+          "label": "Benchmark numbers",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "benchmark"
+            ]
+          }
+        },
+        {
+          "id": "vram",
+          "label": "VRAM requirement",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "vram"
+            ]
+          }
+        },
+        {
+          "id": "licensing",
+          "label": "Licensing terms",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "licensing"
+            ]
+          }
+        }
+      ],
+      "lesson_ids": [
+        "fx-compare-depth"
+      ],
+      "expected_outcome": "improved",
+      "notes": "The learned requirement adds exactly the facts the baseline answer omitted."
+    },
+    {
+      "task_id": "gen-procedure-format",
+      "capability": "general",
+      "request": "How should I set up a small RAG pipeline?",
+      "baseline_answer": "Start with your documents, embed them into an index, and then retrieve passages before answering.",
+      "requirements": [
+        {
+          "id": "numbered",
+          "label": "Numbered steps",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "1.",
+              "2.",
+              "3."
+            ]
+          }
+        },
+        {
+          "id": "check",
+          "label": "Final check step",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "check"
+            ]
+          }
+        }
+      ],
+      "lesson_ids": [
+        "fx-numbered-steps"
+      ],
+      "expected_outcome": "improved",
+      "notes": "A learned formatting preference changes the produced answer, not just the prompt."
+    },
+    {
+      "task_id": "gen-preference",
+      "capability": "general",
+      "request": "Should I use SQLite or Postgres for a local agent?",
+      "baseline_answer": "SQLite needs no server and is easy to embed. Postgres handles concurrent writers better.",
+      "requirements": [
+        {
+          "id": "recommendation",
+          "label": "Explicit recommendation",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "recommendation:"
+            ]
+          }
+        }
+      ],
+      "lesson_ids": [
+        "fx-recommendation"
+      ],
+      "expected_outcome": "improved",
+      "notes": "The user's standing preference for a recommendation line."
+    },
+    {
+      "task_id": "gen-brevity-regression",
+      "capability": "general",
+      "request": "Explain the trade-off between latency and recall in vector search.",
+      "baseline_answer": "Higher recall usually costs latency: a larger candidate list finds more true neighbours but takes longer to search. The trade-off is tuned with the index's search parameter.",
+      "requirements": [
+        {
+          "id": "names-tradeoff",
+          "label": "Names the trade-off",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "trade-off"
+            ]
+          }
+        },
+        {
+          "id": "explains-latency",
+          "label": "Explains latency cost",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "latency"
+            ]
+          }
+        },
+        {
+          "id": "not-too-short",
+          "label": "More than one sentence of content",
+          "check": {
+            "kind": "min_words",
+            "words": 20
+          }
+        }
+      ],
+      "lesson_ids": [
+        "fx-too-brief"
+      ],
+      "expected_outcome": "regression",
+      "notes": "A conflicting preference (brevity) is obeyed and drops requirements the baseline satisfied. The harness must report this as a regression, never as an improvement."
+    },
+    {
+      "task_id": "gen-unrelated-scope",
+      "capability": "general",
+      "request": "What is cosine similarity?",
+      "baseline_answer": "Cosine similarity measures the angle between two vectors, so it ignores their magnitude.",
+      "requirements": [
+        {
+          "id": "angle",
+          "label": "Explains the angle",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "angle"
+            ]
+          }
+        },
+        {
+          "id": "magnitude",
+          "label": "Mentions magnitude",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "magnitude"
+            ]
+          }
+        }
+      ],
+      "lesson_ids": [
+        "fx-books-format"
+      ],
+      "expected_outcome": "unchanged",
+      "notes": "The only lesson in scope is for `books`; a general task must not receive it."
+    },
+    {
+      "task_id": "drift-over-broad-restriction",
+      "capability": "general",
+      "request": "Explain how to rename a variable safely in a small script.",
+      "baseline_answer": "Rename the declaration first, then edit each reference, and run the script's test to confirm nothing still points at the old name.",
+      "requirements": [
+        {
+          "id": "proposes-edit",
+          "label": "Still proposes the edit",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "edit",
+              "rename"
+            ]
+          },
+          "metric": "initiative_retention"
+        },
+        {
+          "id": "no-blanket-refusal",
+          "label": "Does not refuse file changes in general",
+          "check": {
+            "kind": "not_contains_all",
+            "terms": [
+              "never modify any file",
+              "no file is modified"
+            ]
+          },
+          "metric": "unnecessary_restriction_rate"
+        }
+      ],
+      "lesson_ids": [
+        "fx-never-modify"
+      ],
+      "expected_outcome": "regression",
+      "notes": "An over-broad restriction ('never modify any file') IS applied here and removes a capability the baseline had. This measures the DRIFT, and shows why the calibration gate must never store that lesson as active."
+    },
+    {
+      "task_id": "drift-temporary-not-applied",
+      "capability": "general",
+      "request": "Explain how to add a verbose flag to a small command-line script.",
+      "baseline_answer": "Add the flag to the argument parser, pass it to the logger, and list it in the script's help text.",
+      "requirements": [
+        {
+          "id": "proceeds",
+          "label": "Still proposes the change",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "flag",
+              "help text"
+            ]
+          },
+          "metric": "preference_scope_accuracy"
+        },
+        {
+          "id": "temp-constraint-absent",
+          "label": "One-off config restriction is not replayed",
+          "check": {
+            "kind": "not_contains_all",
+            "terms": [
+              "leave config/settings.yaml unchanged"
+            ]
+          },
+          "metric": "preference_scope_accuracy"
+        }
+      ],
+      "lesson_ids": [
+        "fx-temp-config"
+      ],
+      "expected_outcome": "unchanged",
+      "notes": "A temporary instruction from an earlier task must never reach this one, even though the capability matches."
+    },
+    {
+      "task_id": "drift-autonomy-retained",
+      "capability": "general",
+      "request": "How would I move my notes to a new laptop?",
+      "baseline_answer": "Export the notes folder, copy it to the new machine, import it, and check that links and attachments still resolve.",
+      "requirements": [
+        {
+          "id": "takes-initiative",
+          "label": "Gives a concrete sequence",
+          "check": {
+            "kind": "min_words",
+            "words": 12
+          },
+          "metric": "initiative_retention"
+        },
+        {
+          "id": "no-permission-question",
+          "label": "Does not ask for permission",
+          "check": {
+            "kind": "not_contains_all",
+            "terms": [
+              "should i",
+              "shall i",
+              "would you like",
+              "do you want me to"
+            ]
+          },
+          "metric": "clarification_overuse"
+        }
+      ],
+      "lesson_ids": [
+        "fx-autonomy"
+      ],
+      "expected_outcome": "unchanged",
+      "notes": "A learned autonomy preference must not turn into new questions; the baseline already takes initiative, so the outcome must stay unchanged."
+    },
+    {
+      "task_id": "drift-assumptions-retained",
+      "capability": "general",
+      "request": "Roughly how many hours a week does email take for someone who gets 45 messages a day?",
+      "baseline_answer": "Assume 90 seconds per message: about 1.1 hours a day, so roughly 7-8 hours a week.",
+      "requirements": [
+        {
+          "id": "states-assumption",
+          "label": "States an assumption",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "assume"
+            ]
+          },
+          "metric": "initiative_retention"
+        },
+        {
+          "id": "still-answers",
+          "label": "Still gives an estimate",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "hours a week"
+            ]
+          },
+          "metric": "initiative_retention"
+        },
+        {
+          "id": "no-refusal",
+          "label": "Does not refuse for lack of data",
+          "check": {
+            "kind": "not_contains_all",
+            "terms": [
+              "i cannot estimate",
+              "i can't estimate",
+              "not enough information to"
+            ]
+          },
+          "metric": "unnecessary_restriction_rate"
+        }
+      ],
+      "lesson_ids": [
+        "fx-assumptions"
+      ],
+      "expected_outcome": "unchanged",
+      "notes": "A lesson about stating assumptions must let the agent keep assuming, not turn every estimate into a refusal."
+    },
+    {
+      "task_id": "drift-cross-capability",
+      "capability": "general",
+      "request": "Explain how to check input before processing it.",
+      "baseline_answer": "Check the input against the expected shape first, reject anything that does not match, and report which field was wrong.",
+      "requirements": [
+        {
+          "id": "proposes-check",
+          "label": "Still proposes the check",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "check",
+              "reject"
+            ]
+          },
+          "metric": "cross_capability_regression"
+        },
+        {
+          "id": "no-research-leak",
+          "label": "Research rules do not leak into a general task",
+          "check": {
+            "kind": "not_contains_all",
+            "terms": [
+              "licensing terms",
+              "one benchmark"
+            ]
+          },
+          "metric": "cross_capability_regression"
+        }
+      ],
+      "lesson_ids": [
+        "fx-research-depth"
+      ],
+      "expected_outcome": "unchanged",
+      "notes": "A research-scoped lesson must leave a coding task exactly as it was."
+    },
+    {
+      "task_id": "drift-in-scope-constraint",
+      "capability": "general",
+      "request": "Summarise what makes a weekly review useful.",
+      "baseline_answer": "A weekly review is useful when it names what actually shipped, what slipped, and the one decision the next week depends on.",
+      "requirements": [
+        {
+          "id": "answers",
+          "label": "Still answers the question",
+          "check": {
+            "kind": "min_words",
+            "words": 15
+          },
+          "metric": "constraint_accuracy"
+        },
+        {
+          "id": "names-decision",
+          "label": "Keeps the concrete content",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "decision"
+            ]
+          },
+          "metric": "constraint_accuracy"
+        }
+      ],
+      "lesson_ids": [],
+      "expected_outcome": "unchanged",
+      "notes": "Control for constraint accuracy: no restriction exists here, so nothing may be refused."
+    },
+    {
+      "task_id": "drift-research-depth-applied",
+      "capability": "research",
+      "request": "Research and compare two open-source vector databases for a small team.",
+      "baseline_answer": "Both projects index embeddings and return nearest neighbours; pick the one whose index build time fits your corpus.",
+      "requirements": [
+        {
+          "id": "names-licence",
+          "label": "Names the licensing terms",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "licensing"
+            ]
+          }
+        },
+        {
+          "id": "names-benchmark",
+          "label": "Names a benchmark",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "benchmark"
+            ]
+          }
+        },
+        {
+          "id": "still-answers",
+          "label": "Still answers rather than deflecting",
+          "check": {
+            "kind": "min_words",
+            "words": 12
+          },
+          "metric": "initiative_retention"
+        },
+        {
+          "id": "no-research-refusal",
+          "label": "Does not refuse for lack of depth",
+          "check": {
+            "kind": "not_contains_all",
+            "terms": [
+              "i cannot research",
+              "i can't research",
+              "not enough information to"
+            ]
+          },
+          "metric": "unnecessary_restriction_rate"
+        }
+      ],
+      "lesson_ids": [
+        "fx-research-depth"
+      ],
+      "expected_outcome": "improved",
+      "notes": "Repeated research-quality corrections must raise the DEPTH of the research answer without turning it into a refusal or a request for more input."
+    },
+    {
+      "task_id": "drift-frustration-not-learned",
+      "capability": "general",
+      "request": "What should I check before deleting a database index?",
+      "baseline_answer": "Check that no query depends on the index, that the table is not the only source of a unique constraint, and that you can rebuild it quickly if the change proves wrong.",
+      "requirements": [
+        {
+          "id": "answers-concretely",
+          "label": "Still answers concretely",
+          "check": {
+            "kind": "min_words",
+            "words": 15
+          },
+          "metric": "initiative_retention"
+        },
+        {
+          "id": "no-verification-demand",
+          "label": "Does not demand verification of the conclusion",
+          "check": {
+            "kind": "not_contains_all",
+            "terms": [
+              "verify this first",
+              "confirm the conclusion"
+            ]
+          },
+          "metric": "clarification_overuse"
+        }
+      ],
+      "lesson_ids": [
+        "fx-frustration-hedge"
+      ],
+      "expected_outcome": "unchanged",
+      "notes": "A candidate lesson derived from bare frustration is stored for review but must never be applied: frustration alone is not a reusable requirement."
+    },
+    {
+      "task_id": "drift-contradictory-contexts",
+      "capability": "general",
+      "request": "Explain why an index can slow down writes.",
+      "baseline_answer": "Every insert or update must also update the index, so write cost grows with the number of indexes and with the size of the keys they store.",
+      "requirements": [
+        {
+          "id": "standing-applies",
+          "label": "The standing preference is applied",
+          "check": {
+            "kind": "contains_all",
+            "terms": [
+              "source"
+            ]
+          },
+          "metric": "preference_scope_accuracy"
+        },
+        {
+          "id": "contextual-not-applied",
+          "label": "The conflicting contextual candidate is not applied",
+          "check": {
+            "kind": "not_contains_all",
+            "terms": [
+              "do not include citations",
+              "no citation lines"
+            ]
+          },
+          "metric": "preference_scope_accuracy"
+        },
+        {
+          "id": "answers",
+          "label": "Still answers the question",
+          "check": {
+            "kind": "min_words",
+            "words": 10
+          },
+          "metric": "initiative_retention"
+        }
+      ],
+      "lesson_ids": [
+        "fx-cite-always",
+        "fx-no-citations-project"
+      ],
+      "expected_outcome": "improved",
+      "notes": "Two preferences on the same topic but different contexts: the standing one stays active, the project-scoped contradiction waits as a candidate and is not applied."
+    }
+  ],
+  "feedback": [
+    {
+      "id": "fb-file-restriction",
+      "text": "Don't modify this file, I need it exactly as it is.",
+      "kind": "constraint",
+      "behavior": "Never modify any file in the repository.",
+      "expected_feedback_type": "task_constraint",
+      "expected_impact": "constraint",
+      "expected_scope": "workspace",
+      "expected_learnable": true,
+      "expect_overgeneralization": true
+    },
+    {
+      "id": "fb-file-restriction-narrow",
+      "text": "Don't modify this file, I need it exactly as it is.",
+      "kind": "constraint",
+      "behavior": "Leave this file unchanged; make the change in a new module instead.",
+      "expected_feedback_type": "task_constraint",
+      "expected_impact": "constraint",
+      "expected_scope": "workspace",
+      "expected_learnable": true,
+      "expect_overgeneralization": false
+    },
+    {
+      "id": "fb-temporary",
+      "text": "Just this once, answer in bullet points.",
+      "kind": "format",
+      "behavior": "Answer in bullet points.",
+      "expected_feedback_type": "temporary_instruction",
+      "expected_impact": "constraint",
+      "expected_scope": "task",
+      "expected_learnable": true,
+      "expected_temporary": true,
+      "expect_overgeneralization": true
+    },
+    {
+      "id": "fb-temporary-kept",
+      "text": "Just this once, answer in bullet points.",
+      "kind": "format",
+      "behavior": "For this task only, answer in bullet points.",
+      "expected_feedback_type": "temporary_instruction",
+      "expected_impact": "constraint",
+      "expected_scope": "task",
+      "expected_learnable": true,
+      "expected_temporary": true,
+      "expect_overgeneralization": false
+    },
+    {
+      "id": "fb-frustration",
+      "text": "This is useless, you're not helping at all.",
+      "kind": "frustration",
+      "behavior": "",
+      "expected_feedback_type": "frustration",
+      "expected_impact": "quality_improvement",
+      "expected_scope": "capability",
+      "expected_learnable": false,
+      "expect_overgeneralization": false
+    },
+    {
+      "id": "fb-safety",
+      "text": "Be careful with production changes from now on.",
+      "kind": "future_directive",
+      "behavior": "Ask before touching production; never deploy without approval.",
+      "expected_feedback_type": "safety_constraint",
+      "expected_impact": "safety_requirement",
+      "expected_scope": "capability",
+      "expected_learnable": true,
+      "expect_overgeneralization": false
+    },
+    {
+      "id": "fb-quality",
+      "text": "Your research is incomplete, it only covers one vendor.",
+      "kind": "insufficient",
+      "behavior": "Cover every relevant vendor, and say plainly which ones could not be supported.",
+      "expected_feedback_type": "quality_feedback",
+      "expected_impact": "quality_improvement",
+      "expected_scope": "capability",
+      "expected_learnable": true,
+      "expect_overgeneralization": false
+    },
+    {
+      "id": "fb-general-preference",
+      "text": "From now on always cite a source for every claim.",
+      "kind": "future_directive",
+      "behavior": "Cite a source for every factual claim.",
+      "expected_feedback_type": "general_preference",
+      "expected_impact": "preference_adjustment",
+      "expected_scope": "any",
+      "expected_learnable": true,
+      "expect_overgeneralization": false
+    },
+    {
+      "id": "fb-contextual-preference",
+      "text": "Keep answers short for this project, the team skims them.",
+      "kind": "format",
+      "behavior": "Keep answers short in this project.",
+      "expected_feedback_type": "contextual_preference",
+      "expected_impact": "preference_adjustment",
+      "expected_scope": "workspace",
+      "expected_learnable": true,
+      "expect_overgeneralization": false
+    },
+    {
+      "id": "fb-specific-correction",
+      "text": "You changed the spreadsheet dates. I needed the original dates preserved.",
+      "kind": "incorrect",
+      "behavior": "Preserve the original date values and formats in this spreadsheet.",
+      "expected_feedback_type": "specific_correction",
+      "expected_impact": "quality_improvement",
+      "expected_scope": "capability",
+      "expected_learnable": true,
+      "expect_overgeneralization": false
+    },
+    {
+      "id": "fb-repeated",
+      "text": "You made the same mistake again with the comparison.",
+      "kind": "repeated",
+      "behavior": "",
+      "expected_feedback_type": "quality_feedback",
+      "expected_impact": "quality_improvement",
+      "expected_scope": "capability",
+      "expected_learnable": true,
+      "expect_overgeneralization": false
+    },
+    {
+      "id": "fb-contextual-conflict",
+      "text": "In this project, don't add citations, the team knows the sources.",
+      "kind": "constraint",
+      "behavior": "Do not include citations in this project's answers.",
+      "expected_feedback_type": "task_constraint",
+      "expected_impact": "constraint",
+      "expected_scope": "workspace",
+      "expected_learnable": true,
+      "expect_overgeneralization": false
+    }
+  ]
+}

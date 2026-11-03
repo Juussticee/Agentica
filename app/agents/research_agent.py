@@ -68,6 +68,23 @@ def research_agent(state: AgentState) -> dict:
     question = state.get("question", "")
     start = time.perf_counter()
 
+    # Orchestrated knowledge-fallback provenance (2026-10-25 additional
+    # phase): when this run is the books->research fallback, the final
+    # answer must distinguish "the local documents did NOT support an
+    # answer" from the external claims below — and when research also
+    # fails, the user sees BOTH limitations instead of one. The query stays
+    # the ORIGINAL user question (never the refusal sentence, never
+    # retrieved passage text).
+    local_note = ""
+    diagnosis = state.get("books_refusal")
+    if isinstance(diagnosis, dict) and diagnosis:
+        local_note = (
+            "Note: the local books were consulted first and did not provide "
+            f"a sufficient grounded answer (reason: "
+            f"{diagnosis.get('reason', 'unknown')}). Any answer below is "
+            "based on external web research, not the local documents.\n\n"
+        )
+
     search_query = _rewrite_query(question)
     if search_query != question:
         print(f"[research_agent] search query: {search_query!r}")
@@ -80,7 +97,9 @@ def research_agent(state: AgentState) -> dict:
         return with_agent_output(
             state,
             "research",
-            "Web search returned no results, so I could not research this question.",
+            local_note
+            + "Web search returned no results, so I could not research this "
+              "question.",
             ["research"],
         )
 
@@ -101,9 +120,16 @@ def research_agent(state: AgentState) -> dict:
         ]
         cited_urls = [r["url"] for r in results if r["url"]]
 
+    # 2026-10-30: learned research requirements (e.g. "include benchmarks and
+    # licensing") are appended from ACTIVE lessons scoped to research. Empty
+    # on a fresh installation, so the prompt is unchanged then.
+    from app.learning import retrieval as _learning_retrieval
+
+    learned = _learning_retrieval.notes(
+        state, "research", state.get("question") or question)
     prompt = _PROMPT_TEMPLATE.format(
         question=question, context="\n\n---\n\n".join(context_parts)
-    )
+    ) + learned
     answer = llm_text(get_llm().invoke(prompt)).strip()
     elapsed = time.perf_counter() - start
 
@@ -112,6 +138,6 @@ def research_agent(state: AgentState) -> dict:
     return with_agent_output(
         state,
         "research",
-        f"{answer}\n\nSources:\n{listing}",
+        f"{local_note}{answer}\n\nSources:\n{listing}",
         ["research"] + cited_urls,
     )

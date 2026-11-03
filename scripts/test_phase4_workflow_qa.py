@@ -287,8 +287,11 @@ class TestFeasibilityChainOrder(unittest.TestCase):
 
     def test_direct_singles_toggle_off_chain(self):
         graph = self.graph_module.build_graph()
-        # 'What does propolis do?' -> research (research pattern wins over books)
-        graph.invoke({"question": "What does propolis do?"})
+        # 2026-10-28 (Priority A): cue-less questions route to `general`, so
+        # the direct-research half of this toggle uses a current-information
+        # question — the only kind that reaches the research node now.
+        # 'What is the latest on propolis research?' -> research
+        graph.invoke({"question": "What is the latest on propolis research?"})
         self.assertEqual(self.calls, ["research"])
         self.calls.clear()
         # 'Latest AI research this week' -> research

@@ -21,6 +21,28 @@ beforeEach(() => {
     if (url.includes('/events')) {
       return jsonResponse({ execution_id: 'abc/123', after: 0, events: [], count: 0 })
     }
+    if (url.includes('/approvals?status=pending')) {
+      return jsonResponse({ approvals: [], count: 0, status: 'pending' })
+    }
+    // Control Center projections: minimal valid shapes so the overview
+    // renders against a healthy backend.
+    if (url.includes('/v1/dashboard')) {
+      return jsonResponse({
+        checked_at: new Date().toISOString(),
+        provider: { provider: null, state: null, model: null, note: null },
+        agents: { registered: 0, available: 0, disabled: 0, unavailable: 0, orchestration: 0 },
+        skills: { installed: 0, total: 0 },
+        executions: {
+          total: 0, by_status: {}, active: 0, waiting_approval: 0, failed: 0, last_24h: 0,
+        },
+        approvals: { pending: 0 },
+        attention: [],
+        recent_executions: [],
+        activity: [],
+        health: { backend: 'ok', ai: { state: null, provider: null, model: null }, storage: 'ok' },
+        note: 'test',
+      })
+    }
     if (url.includes('/health')) {
       return jsonResponse({ status: 'ok', backend: 'ok', ai: null, version: 'test' })
     }

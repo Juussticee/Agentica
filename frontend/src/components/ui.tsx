@@ -50,6 +50,7 @@ const STATUS_LABELS: Record<ExecutionStatus, string> = {
   completed: 'Completed',
   failed: 'Failed',
   cancelled: 'Cancelled',
+  waiting_for_approval: 'Waiting for approval',
 }
 
 export function StatusBadge({ status }: { status: ExecutionStatus }) {

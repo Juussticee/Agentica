@@ -13,6 +13,7 @@ describe('viewFromHash (malformed-hash hardening)', () => {
     expect(viewFromHash('#/executions')).toEqual({ name: 'executions' })
     expect(viewFromHash('#/services')).toEqual({ name: 'services' })
     expect(viewFromHash('#/agents')).toEqual({ name: 'agents' })
+    expect(viewFromHash('#/approvals')).toEqual({ name: 'approvals' })
     expect(viewFromHash('#/tasks')).toEqual({ name: 'tasks' })
     expect(viewFromHash('#/settings')).toEqual({ name: 'settings' })
     expect(viewFromHash('#/executions/abc123')).toEqual({ name: 'detail', id: 'abc123' })

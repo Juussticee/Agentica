@@ -164,7 +164,14 @@ class TestAgentActivityApi(unittest.TestCase):
         r = self.client.get("/api/v1/agents/activity").json()
         self.assertEqual(r["active_count"], 0)
         self.assertTrue(all(a["status"] == "idle" for a in r["agents"]))
-        self.assertEqual(len(r["agents"]), 6)  # real graph inventory incl. qa
+        # The inventory is the registered agents that have a graph node, plus
+        # the two orchestration-only nodes (supervisor, qa). Asserting the
+        # relationship instead of a magic number keeps this honest as
+        # specialists are added.
+        from app.api.server import _registry_agents
+        expected = {n for n, e in _registry_agents().items() if e.get("node")}
+        expected |= {"supervisor", "qa"}
+        self.assertEqual({a["node"] for a in r["agents"]}, expected)
 
     def test_working_only_while_events_say_so(self):
         # an execution that exists but was never run must NOT mark agents working

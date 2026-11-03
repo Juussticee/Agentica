@@ -17,13 +17,21 @@ import sqlite3
 import sys
 from typing import Any, Dict, List, Literal, Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from app import ai_settings
 from app.execution.runner import GraphRunner
-from app.execution.store import ExecutionStore, serialize_plan
+from app.execution.store import (
+    ApprovalConflict,
+    ApprovalDecisionRequired,
+    ApprovalExpired,
+    ApprovalNotFound,
+    ExecutionStore,
+    serialize_approval,
+    serialize_plan,
+)
 from app.execution.store import DEFAULT_DB_PATH
 
 app = FastAPI(title="Agentica Control Center", version="0.1.0")
@@ -47,11 +55,50 @@ def get_store() -> ExecutionStore:
     global _store
     if _store is None:
         _store = ExecutionStore(DEFAULT_DB_PATH)
+        # Lifecycle invariant (2026-10-28): executions orphaned by a killed
+        # process would otherwise stay `running`/`queued` forever and the UI
+        # would show them as active. Runs once, before this process accepts
+        # any request; fail-soft by convention — bookkeeping must never
+        # prevent the store from being used.
+        try:
+            fixed = _store.reconcile_interrupted()
+            if fixed:
+                print(f"[server] {fixed} interrupted execution(s) "
+                      "closed as failed on startup")
+        except Exception as exc:  # noqa: BLE001
+            print(f"[server] reconcile_interrupted failed "
+                  f"({exc.__class__.__name__}) — startup continues")
     return _store
 
 
 def get_runner() -> GraphRunner:
     return GraphRunner(get_store())
+
+
+# Execution statuses the store can record (kept next to the API so the
+# filter can reject a typo instead of silently returning nothing).
+EXECUTION_STATUSES = (
+    "queued", "running", "completed", "failed", "cancelled",
+    "waiting_for_approval",
+)
+
+
+def _registry_agents() -> Dict[str, Dict[str, Any]]:
+    from app.agents import registry
+
+    return registry.AGENTS
+
+
+def _with_requesting_agent(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Add WHICH registered agent asks for each approval (additive field)."""
+    from app.api.control_center import approval_agent
+
+    enriched = []
+    for item in items:
+        out = dict(item)
+        out["requesting_agent"] = approval_agent(item.get("operation"))
+        enriched.append(out)
+    return enriched
 
 
 # --- AI readiness (GUI-16 partial) -----------------------------------------
@@ -64,33 +111,20 @@ def ai_ready() -> Dict[str, Any]:
 
     Uses GUI-16 precedence: session > saved file > env/config. A full bounded
     connectivity/model/generation check is POST /api/v1/ai/test.
-    """
-    eff = ai_settings.effective_settings()
-    provider = eff.get("llm_provider") or "gemini"
-    if provider == "gemini":
-        configured = bool(eff.get("gemini_api_key"))
-        what = "Gemini"
-        model = eff.get("gemini_model")
-    elif provider == "ollama":
-        configured = bool(eff.get("ollama_base_url"))
-        what = f"Ollama ({eff.get('ollama_base_url')})"
-        model = eff.get("main_model")
-    else:
-        configured = False
-        what = f"unknown provider {provider!r}"
-        model = ""
 
-    state = "ready" if configured else "not_configured"
+    The underlying check lives in app.diagnostics_core.provider_readiness()
+    (Increment 2): /health and the /services `ai_provider` rollup must not
+    disagree about what "configured" means. It is config-only by contract —
+    no network request, no model call. Response keys are unchanged.
+    """
+    from app import diagnostics_core
+
+    readiness = diagnostics_core.provider_readiness()
     return {
-        "provider": provider,
-        "state": state,
-        "what_will_be_tested": f"{what}, model {model}",
-        "state_hint": (
-            "Configured. Agentica will use it for AI-backed steps."
-            if configured else
-            "No API key or endpoint set. AI-backed steps will fail until you "
-            "configure a provider in Settings."
-        ),
+        "provider": readiness["provider"],
+        "state": readiness["state"],
+        "what_will_be_tested": readiness["what_will_be_tested"],
+        "state_hint": readiness["state_hint"],
     }
 
 
@@ -141,9 +175,37 @@ def create_execution(req: CreateExecutionRequest) -> Dict[str, Any]:
 
 
 @app.get("/api/v1/executions")
-def list_executions() -> Dict[str, Any]:
+def list_executions(
+    status: Optional[str] = Query(default=None),
+    q: Optional[str] = Query(default=None, max_length=200),
+    since: Optional[str] = Query(default=None, max_length=40),
+    until: Optional[str] = Query(default=None, max_length=40),
+    limit: Optional[int] = Query(default=None, ge=1, le=500),
+) -> Dict[str, Any]:
+    """History, newest first. Optional filters are additive and read-only;
+    called with no parameters the response is unchanged."""
     execs = get_store().list_executions()
-    return {"executions": execs, "count": len(execs)}
+    total = len(execs)
+    if status or q or since or until or limit is not None:
+        if status and status not in EXECUTION_STATUSES:
+            raise HTTPException(status_code=422, detail={
+                "human_message": "Unknown execution status filter.",
+                "why": f"{status!r} is not a status this store records.",
+                "recovery": "Use one of: " + ", ".join(EXECUTION_STATUSES),
+            })
+        from app.api.control_center import filter_executions
+
+        try:
+            execs = filter_executions(execs, status=status, query=q,
+                                      since=since, until=until, limit=limit)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail={
+                "human_message": "Invalid date filter.",
+                "why": str(exc)[:200],
+                "recovery": "Send an ISO-8601 timestamp, e.g. "
+                            "2026-10-30T00:00:00Z.",
+            })
+    return {"executions": execs, "count": len(execs), "total": total}
 
 
 @app.get("/api/v1/executions/{execution_id}")
@@ -159,6 +221,40 @@ def get_execution(execution_id: str) -> Dict[str, Any]:
     # GUI-12: the detail response carries the serialized plan projection
     # (nullable, backward-compatible: legacy rows get plan=null).
     response["plan"] = serialize_plan(stored.get("plan"))
+    return response
+
+
+@app.get("/api/v1/executions/{execution_id}/evidence")
+def get_execution_evidence(execution_id: str) -> Dict[str, Any]:
+    """The evidence snapshot this execution actually consulted (2026-11-01).
+
+    Read-only and additive: the passage text, retrieval/rerank scores, chunk
+    identities, coverage verdict, claim-to-passage checks and the index
+    identity AS USED. Returns evidence=null with a reason when the run
+    consulted nothing (e.g. a research or conversational route) — a missing
+    snapshot is not an error and is never fabricated.
+    """
+    stored = get_store().get_execution(execution_id)
+    if stored is None:
+        raise HTTPException(status_code=404, detail={
+            "human_message": "Execution not found.",
+            "why": "No execution with that ID exists locally.",
+            "recovery": "Check the execution list.",
+        })
+    from app import evidence_store
+
+    snapshot = evidence_store.read(execution_id)
+    if snapshot is None:
+        return {
+            "execution_id": execution_id,
+            "route": stored.get("route"),
+            "evidence": None,
+            "reason": "no evidence snapshot was recorded for this execution "
+                      "(the route consulted no local passages, or the run "
+                      "predates evidence snapshots)",
+        }
+    response = dict(snapshot)
+    response["execution_id"] = execution_id
     return response
 
 
@@ -217,6 +313,14 @@ class AiSettingsUpdate(BaseModel):
     gemini_model: Optional[str] = Field(default=None, max_length=128)
     main_model: Optional[str] = Field(default=None, max_length=128)
     ollama_base_url: Optional[str] = Field(default=None, max_length=256)
+
+
+class LessonReview(BaseModel):
+    """A review decision on ONE learned lesson (no privileged field)."""
+
+    action: Literal["activate", "disable", "reject", "candidate", "correct"]
+    corrective_behavior: Optional[str] = Field(default=None, max_length=400)
+    reason: Optional[str] = Field(default=None, max_length=300)
 
 
 class AiTestRequest(BaseModel):
@@ -332,6 +436,107 @@ def ai_settings_session(req: AiSettingsUpdate) -> Dict[str, Any]:
 # --- Operations dashboard endpoints (GUI-7 extension) -----------------------
 
 
+@app.get("/api/v1/agents")
+def agents_catalog() -> Dict[str, Any]:
+    """Registered specialists (registry-backed) + config-only availability.
+
+    Read-only and secret-free: no key, token or absolute path is returned,
+    and nothing here probes a service or calls a model.
+    """
+    from app.api import control_center
+
+    return control_center.agent_catalog(get_store())
+
+
+@app.get("/api/v1/skills")
+def skills_catalog() -> Dict[str, Any]:
+    """Documented procedures on disk, plus learned versions of them."""
+    from app.api import control_center
+
+    return control_center.skills_catalog(get_store())
+
+
+# --- Continuous learning (2026-10-30) --------------------------------------
+
+
+@app.get("/api/v1/learning")
+def learning_summary() -> Dict[str, Any]:
+    """Persisted lessons, repeated-failure patterns and skill versions.
+
+    Read-only projection of the `lessons` / `skill_versions` tables. An empty
+    result means nothing has been learned yet — it is never filled in.
+    """
+    from app.api import control_center
+
+    return control_center.learning_summary(get_store())
+
+
+@app.get("/api/v1/learning/evaluation")
+def learning_evaluation() -> Dict[str, Any]:
+    """Latest A/B benchmark report + recent history (read-only files).
+
+    The harness writes reports under `storage/learning_eval/`; this endpoint
+    only reads them, so the numbers are exactly what the run produced. An
+    empty result means no benchmark has been run — it is never filled in.
+    """
+    from app.api import control_center
+
+    return control_center.learning_evaluation()
+
+
+@app.post("/api/v1/learning/lessons/{lesson_id}/review")
+def review_lesson(lesson_id: str, req: LessonReview) -> Dict[str, Any]:
+    """Activate, disable, reject or correct ONE stored lesson.
+
+    This is the only way a lesson's status changes after it is recorded. It
+    cannot grant permissions or alter an approval rule, and it does not touch
+    the model/provider configuration.
+    """
+    from app.api import control_center
+
+    try:
+        lesson = control_center.review_lesson(
+            get_store(), lesson_id, req.action,
+            corrective_behavior=req.corrective_behavior,
+            reason=req.reason,
+        )
+    except KeyError:
+        raise HTTPException(status_code=404, detail="unknown lesson")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"lesson": lesson}
+
+
+@app.post("/api/v1/learning/skills/{skill_id}/rollback")
+def rollback_skill(skill_id: str) -> Dict[str, Any]:
+    """Restore the previous version of a learned skill (kept, not overwritten)."""
+    from app.learning import skills as learning_skills
+
+    outcome = learning_skills.rollback(get_store(), skill_id)
+    if not outcome.get("rolled_back"):
+        return {"rolled_back": False, "reason": outcome.get("reason")}
+    from app.api import control_center
+
+    return {"rolled_back": True,
+            "version": control_center.skill_version_view(outcome["version"])}
+
+
+@app.get("/api/v1/memory")
+def memory_summary() -> Dict[str, Any]:
+    """What actually persists — and the gaps, named explicitly."""
+    from app.api import control_center
+
+    return control_center.memory_summary(get_store())
+
+
+@app.get("/api/v1/dashboard")
+def dashboard_summary() -> Dict[str, Any]:
+    """Operational counts, the attention queue and a real activity timeline."""
+    from app.api import control_center
+
+    return control_center.dashboard_summary(get_store())
+
+
 @app.get("/api/v1/services")
 def services_health() -> Dict[str, Any]:
     """Real bounded probes for each configured dependency.
@@ -341,7 +546,13 @@ def services_health() -> Dict[str, Any]:
     """
     try:
         from app import services_health
-        return services_health.services_snapshot()
+        # W2.1: hand the LIVE store over so the storage row can report
+        # failed event writes; never let that plumbing break the probe.
+        try:
+            store = get_store()
+        except Exception:  # noqa: BLE001 — storage itself is probed below
+            store = None
+        return services_health.services_snapshot(store)
     except Exception as exc:
         return {
             "checked_at": None,
@@ -359,14 +570,16 @@ def agents_activity() -> Dict[str, Any]:
     """Agent/node activity derived ONLY from real execution events.
 
     A node is 'working' when its started event is the latest lifecycle
-    record without a completion; never inferred from graph topology.
+    record without a completion; never inferred from graph topology. The
+    inventory comes from the registered agents (2026-10-30) so a specialist
+    cannot exist in the graph but be invisible here.
     """
     inventory: List[Dict[str, str]] = [
+        {"node": node, "role": str(entry.get("route_reason") or "")}
+        for node, entry in _registry_agents().items()
+        if entry.get("node")
+    ] + [
         {"node": "supervisor", "role": "Decides which capability handles the request"},
-        {"node": "research", "role": "Web research (SearXNG + Crawl4AI + model synthesis)"},
-        {"node": "books", "role": "Answers from the internal book library (RAG)"},
-        {"node": "erp", "role": "Business-data lookups via the adapter"},
-        {"node": "feasibility", "role": "Synthesizes the feasibility study (web + books)"},
         {"node": "qa", "role": "Validates the completed workflow output"},
     ]
     execs = get_store().list_executions()
@@ -425,6 +638,29 @@ def agents_activity() -> Dict[str, Any]:
         "failed_count": len([a for a in active if a["status"] == "failed"]),
         "note": "Activity reflects recorded execution events only.",
     }
+
+
+@app.get("/api/v1/agents/{agent_id}")
+def agent_detail(agent_id: str) -> Dict[str, Any]:
+    """One registered agent, from the same projection as the list.
+
+    Declared AFTER `/agents/activity` on purpose: FastAPI matches routes in
+    declaration order, so a dynamic segment first would swallow the static
+    one (it did — the activity endpoint answered 404 "agent 'activity'").
+    """
+    from app.api import control_center
+
+    catalog = control_center.agent_catalog(get_store())
+    for agent in catalog["agents"]:
+        if agent["id"] == agent_id:
+            return {"agent": agent,
+                    "provider": catalog["provider"],
+                    "checked_at": catalog["checked_at"]}
+    raise HTTPException(status_code=404, detail={
+        "human_message": "Agent not found.",
+        "why": f"No registered agent has the id {agent_id[:40]!r}.",
+        "recovery": "Open the Agents page for the registered list.",
+    })
 
 
 @app.get("/api/v1/executions/{execution_id}/sequence")
@@ -529,6 +765,205 @@ def execution_sequence(execution_id: str) -> Dict[str, Any]:
 def build_server() -> FastAPI:
     """For tests that import the app without starting uvicorn."""
     return app
+
+
+# --- approvals (GUI-10, CONTROL_CENTER_PLAN §12, 2026-10-28) ---------------
+#
+# AUTHENTICATION LIMITATION (documented deliberately, not fixed here):
+# like the rest of this local-first API these endpoints carry NO
+# authentication or per-user authorization — they rely on localhost binding;
+# approval mutations additionally reject untrusted browser Origin headers
+# (CORS alone cannot prevent cross-site form POSTs). They must never be
+# exposed beyond this machine. The Approval Center UI, its SSE decision
+# events and the approval modes of §13 are still PENDING frontend work; what
+# is implemented is the backend lifecycle: persist -> decide -> resume the
+# ONE bound operation.
+
+
+_APPROVAL_BROWSER_ORIGINS = frozenset({
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3333",
+    "http://127.0.0.1:3333",
+})
+
+
+def _require_local_approval_origin(request: Request) -> None:
+    """Reject browser cross-site POSTs to approval decision/execution routes.
+
+    The local API has no authentication, so CORS alone is not a CSRF defense:
+    a hostile page can submit a simple form POST and the browser will send it
+    even if the response is unreadable. Browser-originated mutations must come
+    from the local Control Center origins. Origin-less local CLI/test clients
+    remain compatible; this is not a substitute for authentication if the API
+    is ever exposed beyond localhost.
+    """
+    origin = request.headers.get("origin")
+    if origin is not None and origin not in _APPROVAL_BROWSER_ORIGINS:
+        raise HTTPException(status_code=403, detail={
+            "human_message": "Approval actions are only accepted from the local Control Center.",
+            "why": "The browser request Origin is not an approved local UI origin.",
+            "recovery": "Open Agentica from the local Control Center and retry.",
+        })
+
+
+def _approval_404(approval_id: str) -> HTTPException:
+    return HTTPException(status_code=404, detail={
+        "human_message": "Approval request not found.",
+        "why": f"No approval with id {approval_id[:32]!r} exists locally.",
+        "recovery": "List pending approvals at GET /api/v1/approvals.",
+    })
+
+
+def _decide_approval(approval_id: str, outcome: str) -> Dict[str, Any]:
+    """Shared approve/reject path with the project's error conventions."""
+    try:
+        return get_store().decide_approval(approval_id, outcome)
+    except ApprovalNotFound:
+        raise _approval_404(approval_id)
+    except ApprovalExpired:
+        raise HTTPException(status_code=410, detail={
+            "human_message": "This approval request has expired.",
+            "why": "The decision window passed before a decision was made.",
+            "recovery": "Nothing was executed. Ask the research question "
+                        "again to create a fresh request.",
+        })
+    except ApprovalConflict:
+        raise HTTPException(status_code=409, detail={
+            "human_message": "This approval request was already decided.",
+            "why": "A different decision is recorded; it is never "
+                   "overwritten.",
+            "recovery": "Create a new research request if the decision "
+                        "needs to change.",
+        })
+
+
+@app.get("/api/v1/approvals")
+def approvals_list(
+    status: str = Query(default="pending"),
+    execution_id: Optional[str] = Query(default=None, max_length=64),
+) -> Dict[str, Any]:
+    """List approval requests (default: pending queue for GUI-10).
+
+    `execution_id` narrows the list to one run (used by the execution detail
+    page). `status=all` returns every decision state — a read-only union, no
+    new storage and no change to the approve/reject/resume paths.
+    """
+    store = get_store()
+    try:
+        if status == "all":
+            items = []
+            from app.execution.store import APPROVAL_STATUSES
+
+            for each in APPROVAL_STATUSES:
+                items.extend(store.list_approvals(each))
+        else:
+            items = store.list_approvals(status)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail={
+            "human_message": "Unknown approval status filter.",
+            "why": str(exc)[:200],
+            "recovery": "Use one of: pending, approved, rejected, expired, "
+                        "or all.",
+        })
+    if execution_id:
+        items = [i for i in items if i.get("execution_id") == execution_id]
+    items = _with_requesting_agent(items)
+    return {"approvals": items, "count": len(items), "status": status}
+
+
+@app.get("/api/v1/approvals/{approval_id}")
+def approval_detail(approval_id: str) -> Dict[str, Any]:
+    row = get_store().get_approval(approval_id)
+    if row is None:
+        raise _approval_404(approval_id)
+    return {"approval": _with_requesting_agent(
+        [serialize_approval(row)])[0]}
+
+
+@app.post("/api/v1/approvals/{approval_id}/approve")
+def approval_approve(approval_id: str, request: Request) -> Dict[str, Any]:
+    """Persist approval for EXACTLY the operation bound to this request.
+    Idempotent for a repeat of the same decision; a conflicting decision on
+    an already-decided request is rejected with 409 and never overwrites."""
+    _require_local_approval_origin(request)
+    approval = _decide_approval(approval_id, "approved")
+    return {
+        "approval": approval,
+        "decision": {
+            "approval_id": approval_id,
+            "outcome": "approved",
+            "decided_at": approval.get("decided_at"),
+            "already_decided": bool(approval.get("already_decided")),
+        },
+        "resume": f"/api/v1/approvals/{approval_id}/resume",
+    }
+
+
+@app.post("/api/v1/approvals/{approval_id}/reject")
+def approval_reject(approval_id: str, request: Request) -> Dict[str, Any]:
+    """Persist rejection; the bound external operation stays blocked."""
+    _require_local_approval_origin(request)
+    approval = _decide_approval(approval_id, "rejected")
+    return {
+        "approval": approval,
+        "decision": {
+            "approval_id": approval_id,
+            "outcome": "rejected",
+            "decided_at": approval.get("decided_at"),
+            "already_decided": bool(approval.get("already_decided")),
+        },
+        "resume": f"/api/v1/approvals/{approval_id}/resume",
+    }
+
+
+@app.post("/api/v1/approvals/{approval_id}/resume")
+def approval_resume(approval_id: str, request: Request) -> Dict[str, Any]:
+    """Resolve a decided approval's bound operation.
+
+    approved -> the research step runs through the real gate (persisted
+    decision + bound payload + single-execution claim revalidated) and the
+    execution is updated with the REAL answer; rejected -> the execution is
+    closed with the honest local-only answer (idempotent); pending/expired
+    fail closed with 409/410. The operation is always read back from the
+    stored request — this endpoint accepts no payload.
+    """
+    _require_local_approval_origin(request)
+    try:
+        return get_runner().resume_approval(approval_id)
+    except ApprovalDecisionRequired:
+        raise HTTPException(status_code=409, detail={
+            "human_message": "This request is still waiting for a decision.",
+            "why": "Approve or reject it first; nothing executes while it "
+                   "is pending.",
+            "recovery": "POST .../approve or .../reject, then retry.",
+        })
+    except ApprovalExpired:
+        raise HTTPException(status_code=410, detail={
+            "human_message": "This approval request has expired.",
+            "why": "The decision or execution window passed.",
+            "recovery": "Nothing was executed. Ask the research question "
+                        "again to create a fresh request.",
+        })
+    except ApprovalConflict:
+        raise HTTPException(status_code=409, detail={
+            "human_message": "This approval request cannot be executed.",
+            "why": "It is not bound to a resumable execution.",
+            "recovery": "Create a new research request.",
+        })
+    except LookupError:
+        raise _approval_404(approval_id)
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 — honest structured failure
+        raise HTTPException(status_code=500, detail={
+            "human_message": "The approved operation could not be executed.",
+            "why": str(exc)[:300],
+            "recovery": "Retry the resume; if it persists, report a bug. "
+                        "When the approved operation already ran, the retry "
+                        "continues the remaining work without repeating it; "
+                        "when it never ran, the decision is still unused.",
+        })
 
 
 if __name__ == "__main__":

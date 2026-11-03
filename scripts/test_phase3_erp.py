@@ -95,8 +95,14 @@ class TestRouting(unittest.TestCase):
             supervisor({"question": "What does the orbital book say about delta-v?"})["route"],
             "books",
         )
+        # 2026-10-28 (Priority A): a plain "what is X" question answers from
+        # model knowledge, so the research-route half of this check uses a
+        # current-information request (the only kind routed to research).
         self.assertEqual(
-            supervisor({"question": "What is LangGraph used for?"})["route"], "research"
+            supervisor({"question": "What is the latest LangGraph release?"})["route"], "research"
+        )
+        self.assertEqual(
+            supervisor({"question": "What is LangGraph used for?"})["route"], "general"
         )
         result = supervisor({"question": "Do a feasibility study for a beekeeping venture"})
         self.assertEqual(result["route"], "feasibility")

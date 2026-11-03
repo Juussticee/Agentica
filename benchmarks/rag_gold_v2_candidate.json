@@ -146,8 +146,8 @@
       "required_facts": [],
       "citation_expectation": "page-spanning citation",
       "labels": ["complex-document-table", "multi-page-span"],
-      "provenance": {"blocked_on": "fixture_multipage_table.pdf does not exist yet"},
-      "notes": "Blocked: chunk-boundary/table-spanning retrieval cannot be tested with current single-chunk fixtures."
+      "provenance": {"blocked_on": "fixture_multipage_table.pdf does not exist yet", "blocker_removed": "2026-10-23: the fixture NOW EXISTS (benchmarks/rag_fixtures/fixture_multipage_table.pdf, built by scripts/make_rag_fixtures.py, deterministic). The draft stays unexecuted as a proposal; the C102 promotion is realized executable in benchmarks/rag_gold_v3.json with per-case findings there."},
+      "notes": "Blocked at proposal time: chunk-boundary/table-spanning retrieval cannot be tested with current single-chunk fixtures. The realized (page-scoped, repeated-header) version in gold-v3 constructs what the current pipeline verifiably supports and documents the cross-chunk sub-case as a limitation."
     },
     {
       "id": "C103",

@@ -47,13 +47,15 @@ class _AgentRecorder:
         self.calls = []
         self._snapshot = {
             name: getattr(graph_module, name)
-            for name in ("books_agent", "research_agent", "feasibility_agent", "erp_agent")
+            for name in ("books_agent", "research_agent", "feasibility_agent",
+                         "erp_agent", "synthesis_node")
         }
         self._behavior = behavior or {}
 
     def install(self):
-        for name in ("books_agent", "research_agent", "feasibility_agent", "erp_agent"):
-            node = name.removesuffix("_agent")
+        for name in ("books_agent", "research_agent", "feasibility_agent",
+                     "erp_agent", "synthesis_node"):
+            node = name.removesuffix("_agent").removesuffix("_node")
             setattr(graph_module, name, self._make_fake(node, self._behavior.get(node)))
         return self
 
@@ -149,10 +151,14 @@ def apply_dispatch(state):
 
 class TestCapabilityMapping(unittest.TestCase):
     def test_mapping_is_exactly_the_roadmap_table(self):
+        # 2026-10-30: `data` joins the table with the Data Analyst specialist;
+        # every entry is a real graph node (asserted in
+        # scripts/test_agent_registry.py, which also proves the registry, the
+        # planner whitelist and this table cannot drift apart).
         self.assertEqual(
             CAPABILITY_NODES,
             {"research": "research", "books": "books", "erp": "erp",
-             "synthesis": "feasibility"},
+             "data": "data", "synthesis": "synthesis"},
         )
 
     def test_mapping_keys_match_planner_whitelist(self):
@@ -172,7 +178,10 @@ class TestThreeTaskDependencyOrder(unittest.TestCase):
         self.addCleanup(rec.restore)
 
         state = {
-            "question": "q",
+            # 2026-10-28 (Priority B): dispatching a research task requires
+            # in-message authorization — a bare "q" would be gated. The
+            # dispatcher mechanics under test are unchanged.
+            "question": "Search the web for q",
             "plan": plan_with([
                 task("t1", "research", [], ["question"]),
                 task("t2", "books", ["t1"], ["research"]),
@@ -182,8 +191,8 @@ class TestThreeTaskDependencyOrder(unittest.TestCase):
         self.assertEqual(run_dispatcher_to_completion(state), "qa")
 
         self.assertEqual(
-            rec.calls, ["research", "books", "feasibility"],
-            "t1→t2→t3 must dispatch research→books→feasibility(enc synth)",
+            rec.calls, ["research", "books", "synthesis"],
+            "t1→t2→t3 must dispatch research→books→synthesis",
         )
         self.assertEqual(
             statuses(state),
@@ -192,8 +201,8 @@ class TestThreeTaskDependencyOrder(unittest.TestCase):
         # Results + provenance through the EXISTING channels only.
         self.assertEqual(state["agent_answers"]["research"], "RESEARCH_OUTPUT")
         self.assertEqual(state["agent_answers"]["books"], "BOOKS_OUTPUT")
-        self.assertEqual(state["agent_answers"]["feasibility"], "FEASIBILITY_OUTPUT")
-        for name in ("research", "books", "feasibility"):
+        self.assertEqual(state["agent_answers"]["synthesis"], "SYNTHESIS_OUTPUT")
+        for name in ("research", "books", "synthesis"):
             self.assertIn(name, state["sources"])
 
     def test_independent_tasks_are_not_forced_into_a_specific_order(self):
@@ -201,7 +210,9 @@ class TestThreeTaskDependencyOrder(unittest.TestCase):
         self.addCleanup(rec.restore)
 
         state = {
-            "question": "q",
+            # 2026-10-28 (Priority B): research capability needs an
+            # authorizing request; ordering behavior is what is under test.
+            "question": "Search the web for q",
             "plan": plan_with([
                 task("tA", "research", [], ["question"]),
                 task("tB", "books", [], ["question"]),
@@ -239,7 +250,9 @@ class TestDependencyGating(unittest.TestCase):
         graph_module.books_agent = spy_books
 
         state = {
-            "question": "q",
+            # 2026-10-28 (Priority B): authorizing request so the research
+            # task is dispatchable; dependency gating is what is under test.
+            "question": "Search the web for q",
             "plan": plan_with([
                 task("t1", "research", [], ["question"]),
                 task("t2", "books", ["t1"], ["research"]),
@@ -489,8 +502,12 @@ class TestComplexRequestRunsThroughDispatcher(unittest.TestCase):
         with mock.patch("app.llm_client.get_llm", return_value=fake):
             graph = graph_module.build_graph()
             result = graph.invoke({"question": self.COMPLEX_QUESTION})
-        # GOOD_LLMM_PLAN: t1 research → t2 books → t3 synthesis.
-        self.assertEqual(rec.calls, ["research", "books", "feasibility"])
+        # GOOD_LLMM_PLAN: t1 research → t2 books → t3 synthesis. The recorder
+        # fakes the synthesis NODE (the dispatcher's synthesis target), so the
+        # terminal task is observed as "synthesis" whatever the route; the
+        # feasibility route's delegation to the study is covered by
+        # TestSynthesisNode.test_feasibility_route_still_produces_the_study.
+        self.assertEqual(rec.calls, ["research", "books", "synthesis"])
         self.assertEqual(result["route"], "feasibility")  # set by supervisor
         self.assertEqual(
             [(t["task_id"], t["status"]) for t in result["plan"]["tasks"]],
@@ -498,8 +515,158 @@ class TestComplexRequestRunsThroughDispatcher(unittest.TestCase):
         )
         self.assertEqual(result["agent_answers"]["research"], "RESEARCH_OUTPUT")
         self.assertEqual(result["agent_answers"]["books"], "BOOKS_OUTPUT")
-        self.assertEqual(result["agent_answers"]["feasibility"], "FEASIBILITY_OUTPUT")
+        self.assertEqual(result["agent_answers"]["synthesis"], "SYNTHESIS_OUTPUT")
         self.assertEqual(result["qa_flags"], [])
+
+
+# ---------------------------------------------------------------------------
+# Synthesis node (2026-10-28): the plan's terminal answer, not a report
+# ---------------------------------------------------------------------------
+
+
+class TestSynthesisNode(unittest.TestCase):
+    """`synthesis` composes the completed tasks' results into one answer.
+
+    It replaced the feasibility agent as the synthesis target for
+    non-feasibility plans, which used to write a Market/Financial/Risk study
+    (and a .docx) for ordinary books/ERP/research requests.
+    """
+
+    def _fake_llm(self, reply="COMBINED_ANSWER"):
+        from types import SimpleNamespace
+
+        class _Fake:
+            def __init__(self):
+                self.prompts = []
+
+            def invoke(self, prompt):
+                self.prompts.append(prompt)
+                return SimpleNamespace(content=reply)
+
+        return _Fake()
+
+    def _state(self, tasks, answers, route="books"):
+        return {"question": "What should we do next?", "route": route,
+                "plan": plan_with(tasks), "agent_answers": answers}
+
+    def test_dispatcher_runs_the_synthesis_node_for_a_synthesis_task(self):
+        from unittest import mock
+
+        original_books = graph_module.books_agent
+        graph_module.books_agent = lambda st: {
+            "answer": "BOOKS_STEP",
+            "sources": ["books"],
+            "agent_answers": {"books": "BOOKS_STEP"},
+        }
+        self.addCleanup(setattr, graph_module, "books_agent", original_books)
+        original_synthesis = graph_module.synthesis_node
+        self.addCleanup(setattr, graph_module, "synthesis_node",
+                        original_synthesis)
+        fake = self._fake_llm("COMBINED_ANSWER")
+
+        state = self._state(
+            [task("t1", "books", [], ["question"]),
+             task("t2", "synthesis", ["t1"], ["books"])], {})
+        with mock.patch("app.llm_client.get_llm", return_value=fake):
+            self.assertEqual(run_dispatcher_to_completion(state), "qa")
+
+        self.assertEqual(
+            statuses(state), {"t1": "completed", "t2": "completed"})
+        self.assertEqual(state["answer"], "COMBINED_ANSWER")
+        self.assertEqual(state["agent_answers"]["synthesis"], "COMBINED_ANSWER")
+        self.assertIn("BOOKS_STEP", fake.prompts[0])
+        self.assertNotIn("feasibility", state["sources"],
+                         "an ordinary plan must not produce a feasibility study")
+
+    def test_synthesis_results_are_recorded_and_looked_up_under_their_own_key(
+            self):
+        from app.graph import CAPABILITY_AGENT_KEYS
+
+        self.assertEqual(CAPABILITY_AGENT_KEYS["synthesis"], "synthesis")
+        from unittest import mock
+
+        fake = self._fake_llm("COMBINED_ANSWER")
+        state = self._state([task("t1", "books", [], ["question"])],
+                            {"books": "BOOKS_FINDINGS"})
+        state["plan"]["tasks"][0]["status"] = "completed"
+
+        with mock.patch("app.llm_client.get_llm", return_value=fake):
+            update = graph_module.synthesis_node(state)
+
+        self.assertEqual(update["agent_answers"]["synthesis"],
+                         "COMBINED_ANSWER")
+
+    def test_answer_is_composed_from_completed_task_results(self):
+        from unittest import mock
+
+        fake = self._fake_llm("COMBINED_ANSWER")
+        state = self._state(
+            [task("t1", "books", [], ["question"]),
+             task("t2", "erp", ["t1"], ["books"]),
+             task("t3", "synthesis", ["t2"], ["books", "erp"])],
+            {"books": "BOOKS_FINDINGS", "erp": "ERP_FINDINGS"})
+        state["plan"]["tasks"][0]["status"] = "completed"
+        state["plan"]["tasks"][1]["status"] = "failed"
+
+        with mock.patch("app.llm_client.get_llm", return_value=fake):
+            update = graph_module.synthesis_node(state)
+
+        self.assertEqual(update["answer"], "COMBINED_ANSWER")
+        self.assertEqual(update["agent_answers"]["synthesis"], "COMBINED_ANSWER")
+        self.assertEqual(update["sources"], ["synthesis"])
+        prompt = fake.prompts[0]
+        self.assertIn("BOOKS_FINDINGS", prompt)
+        self.assertIn("What should we do next?", prompt)
+        self.assertNotIn("ERP_FINDINGS", prompt,
+                         "a failed task's result must not be presented as work "
+                         "that was done")
+
+    def test_provider_failure_returns_the_real_results_without_inventing(self):
+        from unittest import mock
+
+        class _Broken:
+            def invoke(self, _prompt):
+                raise RuntimeError("provider down")
+
+        state = self._state([task("t1", "books", [], ["question"])],
+                            {"books": "BOOKS_FINDINGS"})
+        state["plan"]["tasks"][0]["status"] = "completed"
+
+        with mock.patch("app.llm_client.get_llm", return_value=_Broken()):
+            update = graph_module.synthesis_node(state)
+
+        self.assertIn("BOOKS_FINDINGS", update["answer"])
+        self.assertIn("unavailable", update["answer"])
+        self.assertEqual(update["sources"], ["synthesis"])
+
+    def test_no_completed_result_is_reported_honestly(self):
+        state = self._state([task("t1", "books", [], ["question"])], {})
+        state["plan"]["tasks"][0]["status"] = "failed"
+
+        update = graph_module.synthesis_node(state)
+
+        self.assertIn("nothing to combine", update["answer"])
+        self.assertEqual(update["sources"], [])
+
+    def test_feasibility_route_still_produces_the_feasibility_study(self):
+        called = {}
+        original = graph_module.feasibility_agent
+
+        def fake_study(state):
+            called["state"] = state
+            return {"answer": "STUDY", "sources": ["feasibility"],
+                    "agent_answers": {"feasibility": "STUDY"}}
+
+        graph_module.feasibility_agent = fake_study
+        try:
+            update = graph_module.synthesis_node(
+                self._state([task("t1", "synthesis", [], ["question"])],
+                            {}, route="feasibility"))
+        finally:
+            graph_module.feasibility_agent = original
+
+        self.assertEqual(update["answer"], "STUDY")
+        self.assertEqual(called["state"]["route"], "feasibility")
 
 
 # ---------------------------------------------------------------------------
@@ -561,6 +728,285 @@ class TestReentryAndProvenance(unittest.TestCase):
             {"plan", "answer", "sources", "agent_answers"},
             "the dispatcher may only return plan bookkeeping + node outputs",
         )
+
+
+# ---------------------------------------------------------------------------
+# Task-scoped execution (2026-10-29)
+# ---------------------------------------------------------------------------
+
+
+class TestTaskScopedExecution(unittest.TestCase):
+    """A planned sub-request runs as its OWN instruction, not as the whole ask.
+
+    The original request stays available as state["request"] for everything
+    bound to what the user asked, template objectives keep the request, and a
+    research task's external query is always the request (the approved
+    operation), never a plan-generated query.
+    """
+
+    def _install(self, mapping):
+        snapshot = {}
+        for name, fn in mapping.items():
+            snapshot[name] = getattr(graph_module, name)
+            setattr(graph_module, name, fn)
+        self.addCleanup(lambda: [setattr(graph_module, n, f)
+                                 for n, f in snapshot.items()])
+
+    def _recorder(self, node, seen):
+        def fake(state):
+            seen.append({"node": node, "question": state.get("question"),
+                         "request": state.get("request")})
+            return {"answer": f"{node.upper()}_OUT", "sources": [node],
+                    "agent_answers": {**(state.get("agent_answers") or {}),
+                                      node: f"{node.upper()}_OUT"}}
+        return fake
+
+    def test_each_task_receives_its_own_objective(self):
+        seen = []
+        self._install({"books_agent": self._recorder("books", seen),
+                       "erp_agent": self._recorder("erp", seen)})
+        request = "Compare our policy documents with the current invoice backlog"
+        books_task = task("t1", "books", [], ["question"])
+        books_task["objective"] = "What does the AI policy say about model documentation?"
+        erp_task = task("t2", "erp", [], ["question"])
+        erp_task["objective"] = "Which invoices are overdue this month?"
+
+        run_dispatcher_to_completion({"question": request,
+                                      "plan": plan_with([books_task, erp_task])})
+
+        self.assertEqual([c["question"] for c in seen],
+                         [books_task["objective"], erp_task["objective"]],
+                         "each task must run as its own instruction")
+        self.assertEqual([c["request"] for c in seen], [request, request],
+                         "the original request stays available beside it")
+
+    def test_dependent_task_sees_the_previous_result(self):
+        seen = []
+        self._install({"books_agent": self._recorder("books", seen),
+                       "erp_agent": self._recorder("erp", seen)})
+        t1 = task("t1", "books", [], ["question"])
+        t1["objective"] = "What does the guide say about propolis?"
+        t2 = task("t2", "erp", ["t1"], ["books"])
+        t2["objective"] = "Do any overdue invoices relate to propolis suppliers?"
+        state = {"question": "Check propolis and our invoices",
+                 "plan": plan_with([t1, t2])}
+
+        run_dispatcher_to_completion(state)
+
+        self.assertEqual(seen[1]["question"], t2["objective"])
+        self.assertEqual(state["agent_answers"]["books"], "BOOKS_OUT")
+        self.assertEqual(state["plan"]["tasks"][1]["result"], "ERP_OUT")
+
+    def test_template_objectives_keep_the_original_request(self):
+        from app.graph import task_instruction
+        from app.planner import GENERIC_PLAN_OBJECTIVES
+
+        request = "What does chapter 3 say about propolis?"
+        for objective in sorted(GENERIC_PLAN_OBJECTIVES):
+            with self.subTest(objective=objective):
+                self.assertIsNone(
+                    task_instruction({"capability": "books",
+                                      "objective": objective}, request))
+        # ...while a real sub-request is used, and research never is:
+        self.assertEqual(
+            task_instruction({"capability": "books",
+                              "objective": "Which documents mention propolis?"},
+                             request),
+            "Which documents mention propolis?")
+        self.assertIsNone(task_instruction(
+            {"capability": "research",
+             "objective": "Search the EU AI Act enforcement deadlines"}, request))
+
+    def test_research_still_searches_the_request_and_keeps_the_gate(self):
+        seen = []
+        self._install({"research_agent": self._recorder("research", seen)})
+        t1 = task("t1", "research", [], ["question"])
+        t1["objective"] = "Search the EU AI Act enforcement deadlines"
+        request = "Research the latest AI news"
+
+        state = {"question": request, "plan": plan_with([t1])}
+        run_dispatcher_to_completion(state)
+
+        self.assertEqual(seen[0]["question"], request,
+                         "an objective may never widen the approved search")
+        self.assertIsNone(seen[0].get("request"),
+                          "research needs no scoped copy: the request IS the "
+                          "question")
+
+        # ...and an objective that LOOKS like a web request cannot authorize
+        # research on its own: authorization reads the original request.
+        seen.clear()
+        unauthorised = task("t1", "research", [], ["question"])
+        unauthorised["objective"] = "Search the web for the EU AI Act"
+        state = {"question": "What does the guide say about hive economics?",
+                 "route": "books", "plan": plan_with([unauthorised])}
+        run_dispatcher_to_completion(state)
+        self.assertEqual(seen, [], "the gate must not be bypassed by an "
+                                   "objective")
+        self.assertEqual(state["plan"]["tasks"][0]["status"], "failed")
+        self.assertIn("not authorized",
+                      state["plan"]["tasks"][0]["error"])
+
+    def test_synthesis_prompt_answers_the_original_request(self):
+        from unittest import mock
+
+        from types import SimpleNamespace
+
+        class _Fake:
+            def __init__(self):
+                self.prompts = []
+
+            def invoke(self, prompt):
+                self.prompts.append(prompt)
+                return SimpleNamespace(content="COMBINED")
+
+        fake = _Fake()
+        request = "Compare our policy with the invoice backlog"
+        state = {"question": "Summarise the completed steps",
+                 "request": request, "route": "books",
+                 "plan": plan_with([task("t1", "books", [], ["question"])]),
+                 "agent_answers": {"books": "BOOKS_FINDINGS"}}
+        state["plan"]["tasks"][0]["status"] = "completed"
+
+        with mock.patch("app.llm_client.get_llm", return_value=fake):
+            graph_module.synthesis_node(state)
+
+        self.assertIn(request, fake.prompts[0])
+        self.assertNotIn("Summarise the completed steps", fake.prompts[0])
+
+    def test_single_step_route_is_unchanged(self):
+        seen = []
+        self._install({"books_agent": self._recorder("books", seen)})
+        graph = graph_module.build_graph()
+
+        result = graph.invoke({"question": "What does chapter 3 say about propolis?"})
+
+        self.assertEqual(seen[0]["question"],
+                         "What does chapter 3 say about propolis?")
+        self.assertIsNone(seen[0]["request"],
+                          "a non-planned route gains no scoping key")
+        self.assertEqual(result["answer"], "BOOKS_OUT")
+
+
+# ---------------------------------------------------------------------------
+# Task output honesty (2026-10-29)
+# ---------------------------------------------------------------------------
+
+
+class TestTaskOutputHonesty(unittest.TestCase):
+    """A task is completed ONLY when its node really produced an answer.
+
+    Before this, a node that returned no `answer` (or a blank one) was still
+    recorded `completed` with result None: a partial run could report success
+    and dependent tasks consumed nothing.
+    """
+
+    def _install(self, fake):
+        original = graph_module.books_agent
+        graph_module.books_agent = fake
+        self.addCleanup(setattr, graph_module, "books_agent", original)
+
+    def _state(self):
+        return {"question": "q", "plan": plan_with([
+            task("t1", "books", [], ["question"]),
+            task("t2", "synthesis", ["t1"], ["books"]),
+        ])}
+
+    def test_node_without_an_answer_is_marked_failed(self):
+        self._install(lambda _state: {})
+        state = self._state()
+
+        run_dispatcher_to_completion(state)
+
+        self.assertEqual(statuses(state), {"t1": "failed", "t2": "blocked"})
+        t1 = state["plan"]["tasks"][0]
+        self.assertIsNone(t1["result"])
+        self.assertIn("produced no output", t1["error"])
+        self.assertIn("plan incomplete", " | ".join(run_qa(state)))
+
+    def test_blank_answer_is_not_output(self):
+        self._install(lambda state: {"answer": "   ", "sources": ["books"],
+                                     "agent_answers": {"books": "   "}})
+        state = self._state()
+
+        run_dispatcher_to_completion(state)
+
+        self.assertEqual(statuses(state), {"t1": "failed", "t2": "blocked"})
+        self.assertIn("produced no output",
+                      state["plan"]["tasks"][0]["error"])
+
+    def test_real_answer_is_still_completed_with_its_result(self):
+        rec = _AgentRecorder().install()
+        self.addCleanup(rec.restore)
+        state = self._state()
+
+        run_dispatcher_to_completion(state)
+
+        self.assertEqual(statuses(state), {"t1": "completed",
+                                           "t2": "completed"})
+        self.assertEqual(state["plan"]["tasks"][0]["result"],
+                         "BOOKS_OUTPUT")
+
+
+# ---------------------------------------------------------------------------
+# Continuation progress reporting (2026-10-29)
+# ---------------------------------------------------------------------------
+
+
+class TestContinuationProgress(unittest.TestCase):
+    """`continue_plan(on_progress=...)` reports the plan after EVERY task.
+
+    The runner persists these snapshots so an interrupted continuation can
+    resume instead of replaying finished (possibly non-idempotent) work.
+    """
+
+    def _state(self):
+        return {
+            "question": "q",
+            "plan": plan_with([
+                task("t1", "books", [], ["question"]),
+                task("t2", "erp", ["t1"], ["books"]),
+            ]),
+        }
+
+    def test_progress_is_reported_before_and_after_each_task(self):
+        rec = _AgentRecorder().install()
+        self.addCleanup(rec.restore)
+        snapshots = []
+
+        result = graph_module.continue_plan(
+            self._state(),
+            on_progress=lambda cur: snapshots.append(
+                {t["task_id"]: t.get("status")
+                 for t in cur["plan"]["tasks"]}),
+        )
+
+        self.assertEqual(
+            [t["status"] for t in result["plan"]["tasks"]],
+            ["completed", "completed"],
+        )
+        self.assertEqual(len(snapshots), 3,
+                         "one report for the released plan + one per task")
+        self.assertNotIn("completed", list(snapshots[0].values()),
+                         "the first report precedes the first task")
+        self.assertEqual(snapshots[1], {"t1": "completed", "t2": "pending"},
+                         "each finished task is visible before the next runs")
+        self.assertEqual(snapshots[-1], {"t1": "completed", "t2": "completed"})
+
+    def test_failing_progress_callback_never_aborts_the_plan(self):
+        rec = _AgentRecorder().install()
+        self.addCleanup(rec.restore)
+
+        def _boom(_current):
+            raise RuntimeError("bookkeeping unavailable")
+
+        result = graph_module.continue_plan(self._state(), on_progress=_boom)
+
+        self.assertEqual(
+            [t["status"] for t in result["plan"]["tasks"]],
+            ["completed", "completed"],
+        )
+        self.assertEqual(result["answer"], "ERP_OUTPUT")
 
 
 # ---------------------------------------------------------------------------

@@ -29,7 +29,7 @@ created, no commits.
 | RAG | Vector-only Chroma index built by `ingest_books.py`; manifest at `storage/.index_manifest.json` | Knowledge page can be built from manifest + collection, no embedding internals exposed |
 | Logging | Only `app/erp/log.py` → `logs/erp_actions.log` (append line per ERP op) | No general event stream; the event model (Section 10) is net-new |
 | Reports | `reports/feasibility_YYYYMMDD_HHMMSS.docx` written by feasibility agent | Reports page = index of these files linked to their executions (needs provenance link added) |
-| Approvals | None anywhere (ERP boundary is read-only by construction) | Approval Center is net-new backend capability (Section 12), not a UI overlay |
+| Approvals | Research-approval backend only since 2026-10-28: `ApprovalRequest` rows for external research with list/approve/reject/resume endpoints (Section 12); the ERP boundary is read-only by construction | Remaining Section 12/13 work is SSE decision events plus step-level approvals, the policy classes and approval modes — the research gate and its Approval Center queue UI are done |
 | Controls | None — no pause/resume/cancel exists | Control endpoints are net-new backend capability (Section 14) |
 | Tests | 101 deterministic tests + 10 subtests (7 suites), zero quota; Phase 4 workflow suite proves graph orchestration | GUI tests must reuse this discipline; backend event/API tests join the zero-quota set |
 | Frontend | **None** — no `package.json`, no framework, no web deps in `requirements.txt` | Frontend technology is a free choice (Section 27) |
@@ -430,6 +430,82 @@ Approve/Reject are idempotent POSTs; the UI reflects resolution via SSE
 
 Queue page: pending (sorted by age), resolved (history), filters by
 execution/impact. Dashboard badge shows pending count.
+
+### Implemented 2026-10-28 — external-research scope, backend only
+
+The first real `ApprovalRequest` lifecycle exists today, scoped to the ONE
+operation that leaves the machine: external web research past the
+`research_entry` gate. It lives in `app/execution/store.py` (table
+`approvals`, additive migration, FK `execution_id → executions ON DELETE
+CASCADE`), the gate in `app/graph.py`, and `app/api/server.py`.
+
+State machine — terminal states never change; a conflicting decision is
+409, never an overwrite:
+
+```text
+pending ──approve──▶ approved ──resume──▶ research ran (approval.executed)
+   │                                                    │
+   │                          plan bound? ──yes──▶ remaining tasks continue
+   │                                              through the SAME dispatcher
+   │                                              (completed tasks skipped;
+   │                                               a later research task needs
+   │                                               its own approval)
+   ├──reject──▶ rejected ──resume──▶ execution closed with the honest
+   │                                  local-only answer (nothing external ran)
+   └──expiry──▶ expired   (decide → 410, resume → 410, fail closed)
+```
+
+**Plan continuation (2026-10-28 follow-up):** a paused multi-step run is no
+longer capped at its research result. `resume_approval` releases the
+approval-blocked research task on the PERSISTED plan (`released_plan()`),
+re-opens the dependency-blocked tasks and replays the remainder through the
+existing `dispatcher_node` (`continue_plan()`), rebuilding the accumulated
+`agent_answers` channel from persisted task results. The execution is
+`completed` only when every plan task completed; a later failure keeps the
+real answer and reports `failed/incomplete_plan`; a second unapproved
+research task pauses the same execution again (`waiting_for_approval`, new
+request). The single-execution claim still makes a retried resume a no-op.
+
+**Interrupted continuation (2026-10-28):** the released plan and the research
+answer are persisted BEFORE the continuation runs, so a crash between the
+approved search and the remaining tasks no longer strands the execution in
+`waiting_for_approval`: a retried resume detects a `COMPLETED` research task
+carrying a persisted result and continues from there — the external operation
+is never repeated. If the approval was claimed but no persisted result proves
+what it returned, the run is closed `failed` with `resume_interrupted` (never
+guessed at, never searched twice). `ExecutionStore.resume_claim()` admits one
+resume of an execution at a time in-process; the persisted
+`approvals.executed_at` claim remains the durable guard (process-local by
+design — a multi-process deployment would need the claim in the database).
+
+- **Binding:** the payload (question, route, refusal diagnosis, local
+  answer) is built SERVER-SIDE by the gate and fingerprinted; approval
+  authorizes exactly that payload and nothing else. The resume endpoint
+  accepts no payload — it reads the stored request back and revalidates the
+  persisted decision plus a single-execution claim inside the real gate
+  before any search/crawl runs.
+- **Idempotence:** repeated gate deliveries reuse the ONE pending request
+  for the same execution + fingerprint; a repeat of the same decision
+  returns `already_decided: true`; a different decision on a decided
+  request is rejected (409).
+- **Endpoints:** `GET /api/v1/approvals` (`?status=` queue), `GET
+  /api/v1/approvals/{id}`, `POST /api/v1/approvals/{id}/approve`,
+  `.../reject`, `.../resume`.
+- **Events:** `approval.created`, `approval.decided`, `approval.executed`,
+  `approval.finalized` on the owning execution's event log (Section 10).
+- **Failure = denial:** if the approval store cannot write, the gate still
+  answers with the approval-request text plus an explicit “could not
+  register” note and NOTHING external runs.
+- **Authentication limitation (documented, not fixed):** these endpoints
+  carry NO authentication — they rely on the localhost bind and CORS like
+  the rest of the local-first API. Never expose them beyond this machine.
+- **Approval Center UI:** `frontend/src/pages/Approvals.tsx` polls the queue
+  (5 s), shows what is proposed and why, decides, and reports the execution's
+  own status separately from the decision.
+- **Still pending for GUI-10:** SSE decision events (`execution.
+  waiting_for_approval/approved/rejected` are written to the event log but not
+  streamed), step-level (non-research) approvals, and the Section 13 policy
+  classes/modes.
 
 ---
 
@@ -1036,8 +1112,9 @@ guarantees (ordered, backfillable, at-least-once) proven by tests.
 A curl-only client can create, watch, and cancel an execution.
 
 ### Explicit exclusions
-No frontend, no approvals endpoints (GUI-10), no chat (GUI-11), no auth
-roles (GUI-18).
+No frontend, no approval queue endpoints (GUI-10 — a research-scope
+approval backend landed 2026-10-28 outside the phase sequence, Section 12),
+no chat (GUI-11), no auth roles (GUI-18).
 
 ### Phase GUI-3 — Control Center shell (frontend scaffold)
 
@@ -1524,10 +1601,17 @@ labels); budgets impossible to exceed from UI.
 User can stop or recover any running execution; errors fully actionable.
 
 ### Explicit exclusions
-No approvals yet (GUI-10), no auto-retry policy editing (Settings/GUI-16),
-no mid-step rollback semantics (out of scope of plan).
+No approval UI or step-level approvals yet (GUI-10 — the research-scope
+backend exists since 2026-10-28, Section 12), no auto-retry policy editing
+(Settings/GUI-16), no mid-step rollback semantics (out of scope of plan).
 
 ### Phase GUI-10 — Approval Center + autonomous mode
+
+STATUS 2026-10-28: the research-scope approval lifecycle is implemented
+(persisted `ApprovalRequest`, gate binding, list/approve/reject/resume
+endpoints, `approval.*` events — Section 12 above). NOT yet: the policy
+engine, step-blocking waits, approval modes, SSE decision events and the
+queue UI described below.
 
 ### Goal
 Sections 12–13: real ApprovalRequest backend, queue UI, approve/reject with

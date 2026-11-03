@@ -32,7 +32,7 @@ from app.state import AgentState
 # Capability whitelist — defined in CODE (MASTER_PLAN §5.2), mirroring the
 # dispatch mapping the Phase 8 executor will legalize in app/graph.py.
 # Anything outside it ⇒ plan rejected deterministically.
-CAPABILITIES = frozenset({"research", "books", "erp", "synthesis"})
+CAPABILITIES = frozenset({"research", "books", "erp", "data", "synthesis"})
 
 # Satisfiable required_inputs: the user's question (always available) or the
 # output of any capability some task in the plan will produce.
@@ -121,6 +121,26 @@ def _llm_complexity(question: str) -> Optional[bool]:
     if verdict == "simple":
         return False
     return None  # malformed label → deterministic fallback
+
+
+# Objectives that describe a STEP rather than ask anything (2026-10-29).
+# The template plans below route the ORIGINAL question to one source, so their
+# objectives are wording for the plan view, not sub-requests: a dispatched
+# specialist must answer the user's request for them. LLM-planned objectives
+# describe real sub-requests and are deliberately NOT in this set, so they are
+# executed as their own instruction. One definition, used by default_plan's
+# templates and by the dispatcher's task-scoping rule.
+GENERIC_PLAN_OBJECTIVES = frozenset({
+    "Gather web research for the feasibility study",
+    "Check the user's book library for relevant material",
+    "Assess feasibility combining research and books findings",
+    "Look up the requested ERP business data",
+    "Answer the question from the ERP data",
+    "Answer from the user's book library",
+    "Answer the question from the book answer",
+    "Research the request on the web",
+    "Answer the question from the research summary",
+})
 
 
 def _task(task_id: str, capability: str, objective: str,
@@ -396,9 +416,16 @@ def planner_node(state: AgentState) -> dict:
     parsed: Optional[dict] = None
     plan_source = "default"
     llm_down = False
+    # 2026-10-30: a correction the user already gave applies to the PLAN too
+    # ("always include licensing" must reach task objectives, not only the
+    # final wording). Only ACTIVE, capability-matching lessons are rendered.
+    from app.learning import retrieval as _learning_retrieval
+
+    learned = _learning_retrieval.notes(state, str(state.get("route") or ""),
+                                       question)
     try:
         response = get_llm(fast=True).invoke(
-            _PLANNER_PROMPT.format(question=question)
+            _PLANNER_PROMPT.format(question=question) + learned
         )
         parsed = parse_plan(llm_text(response))
     except Exception:

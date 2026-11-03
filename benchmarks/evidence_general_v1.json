@@ -1,0 +1,194 @@
+{
+  "version": "evidence_general_v1",
+  "harness_version": "2026-11-01",
+  "description": "Baseline (model knowledge only) vs evidence-grounded general answering. The passages and expected facts are AUTHORITATIVE FIXTURES: they are the ground truth for this evaluation, never the model's own output. Licence and figure values come from the real projects' published terms (Redis BSD-3, Memcached Apache 2.0, PostgreSQL PostgreSQL licence, SQLite public domain) and are deliberately different from what the model double claims from memory, which is exactly the audited failure mode.",
+  "mode": "offline_deterministic",
+  "mode_note": "The provider is a scripted double: it repeats the case's prepared reply, so this measures the PIPELINE (what reaches the user, what QA reports), not the model's knowledge. No network, no Ollama, no vector store.",
+  "cases": [
+    {
+      "id": "E1",
+      "kind": "answer",
+      "question": "What licence is Redis distributed under?",
+      "passages": [
+        {"file_name": "cache_notes.pdf", "page_label": "3", "score": 0.86,
+         "text": "Redis is distributed under the BSD-3 licence. It is written in C and keeps its dataset in memory."}
+      ],
+      "grounded_answer": "Redis is distributed under the BSD-3 licence.",
+      "memory_answer": "Redis is licensed under the MIT licence.",
+      "expect": {"from": "evidence", "must_include": ["BSD-3"],
+                 "must_include_sources": true, "flag": null},
+      "note": "Complete coverage: the audited defect was a confident wrong licence with no source."
+    },
+    {
+      "id": "E2",
+      "kind": "answer",
+      "question": "Does Redis keep its dataset in memory, and how much VRAM does it need?",
+      "passages": [
+        {"file_name": "cache_notes.pdf", "page_label": "3", "score": 0.81,
+         "text": "Redis keeps its entire dataset in memory and is written in C."}
+      ],
+      "grounded_answer": "Redis keeps its entire dataset in memory.",
+      "memory_answer": "Redis keeps its dataset in memory and needs about 2 GB of VRAM.",
+      "expect": {"from": "evidence", "partial": true,
+                 "must_include": ["memory", "Not stated by the passages"],
+                 "must_include_sources": true, "flag": null},
+      "note": "Partial coverage must keep the supported half and name the missing detail."
+    },
+    {
+      "id": "E3",
+      "kind": "answer",
+      "question": "What licence is Redis distributed under?",
+      "passages": [
+        {"file_name": "nist_ai_rmf.pdf", "page_label": "12", "score": 0.72,
+         "text": "The AI Risk Management Framework is organised into four functions: GOVERN, MAP, MEASURE and MANAGE."}
+      ],
+      "grounded_answer": "",
+      "memory_answer": "Redis is distributed under the BSD-3 licence.",
+      "expect": {"from": "model", "must_include": ["Answered from my own knowledge"],
+                 "must_include_sources": false, "flag": "licence"},
+      "note": "No relevant documents: a useful answer is still allowed, labelled, with no citation."
+    },
+    {
+      "id": "E4",
+      "kind": "answer",
+      "question": "What is the write amplification of Redis under load?",
+      "passages": [
+        {"file_name": "cache_notes.pdf", "page_label": "7", "score": 0.76,
+         "text": "Redis is an in-memory key-value store that is often used as a cache."}
+      ],
+      "grounded_answer": "",
+      "memory_answer": "Redis write amplification is 1x because it is memory-only, roughly 1.0.",
+      "expect": {"from": "model", "must_include": ["no passage in your local document library covers this"],
+                 "must_include_sources": false, "flag": null},
+      "note": "Relevant-looking but insufficient: the passage names Redis, not the requested detail."
+    },
+    {
+      "id": "E5",
+      "kind": "answer",
+      "question": "What licence is Redis distributed under?",
+      "passages": [
+        {"file_name": "vendor_a.pdf", "page_label": "2", "score": 0.9,
+         "text": "Redis is distributed under the BSD-3 licence."},
+        {"file_name": "vendor_b.pdf", "page_label": "5", "score": 0.88,
+         "text": "Redis is licensed under the MIT licence for this build."}
+      ],
+      "grounded_answer": "Redis is distributed under the BSD-3 licence.",
+      "memory_answer": "Redis is distributed under the BSD-3 licence.",
+      "expect": {"from": "evidence", "must_include": ["different licences"],
+                 "must_include_sources": true, "flag": null},
+      "note": "Conflicting documents must be disclosed, never silently resolved."
+    },
+    {
+      "id": "E6",
+      "kind": "answer",
+      "question": "What licence is Memcached distributed under?",
+      "passages": [
+        {"file_name": "cache_notes.pdf", "page_label": "3", "score": 0.85,
+         "text": "Redis is distributed under the BSD-3 licence. Memcached is distributed under the Apache 2.0 licence."}
+      ],
+      "grounded_answer": "Memcached is distributed under the BSD-3 licence.",
+      "memory_answer": "Memcached is distributed under the BSD-3 licence.",
+      "expect": {"from": "evidence", "must_include": ["BSD-3"],
+                 "must_include_sources": true, "flag": "contradicted"},
+      "note": "Token coverage alone cannot see a swapped value; claim-level QA must."
+    },
+    {
+      "id": "E7",
+      "kind": "answer",
+      "question": "Can you explain how a cache improves load?",
+      "passages": [],
+      "grounded_answer": "",
+      "memory_answer": "A cache reduces database load by 30-50% and Redis is 10x faster than Memcached.",
+      "expect": {"from": "model", "must_include": ["not checked against any source"],
+                 "must_include_sources": false, "flag": "figure"},
+      "note": "The audited fabricated performance figures."
+    },
+    {
+      "id": "E8",
+      "kind": "answer",
+      "question": "Is Redis a good cache for a small team?",
+      "passages": [],
+      "grounded_answer": "",
+      "memory_answer": "Yes. Redis is licensed under the SSPL, which is fine for internal use.",
+      "expect": {"from": "model", "must_include": ["not checked against any source"],
+                 "must_include_sources": false, "flag": "licence"},
+      "note": "The audited licensing defect from memory."
+    },
+    {
+      "id": "E9",
+      "kind": "answer",
+      "question": "We measured 40 ms and 60 ms for two calls. What is the total?",
+      "passages": [],
+      "grounded_answer": "",
+      "memory_answer": "The total is 100 ms.",
+      "expect": {"from": "model", "must_include": ["100"],
+                 "must_include_sources": false, "flag": null},
+      "note": "Arithmetic on user-supplied numbers is not an unsupported claim."
+    },
+    {
+      "id": "E10",
+      "kind": "answer",
+      "question": "What does HTTP 429 mean?",
+      "passages": [],
+      "grounded_answer": "",
+      "memory_answer": "Too Many Requests. In practice roughly 10% of clients hit it during bursts, by my estimate.",
+      "expect": {"from": "model", "must_include": ["Too Many Requests"],
+                 "must_include_sources": false, "flag": null},
+      "note": "A disclosed estimate is labelled, not flagged as unsupported."
+    },
+    {
+      "id": "E11",
+      "kind": "route",
+      "question": "Using only the local documents, what does the AI RMF say about risk?",
+      "expect_route": "books",
+      "note": "Local-only instruction keeps using the corpus and must never start web research."
+    },
+    {
+      "id": "E12",
+      "kind": "route",
+      "question": "Search the web and compare Redis and Memcached licences.",
+      "expect_route": "research",
+      "note": "Explicit external authorization uses the existing research capability."
+    },
+    {
+      "id": "E13",
+      "kind": "followup",
+      "question": "What about the one you recommended?",
+      "prior": {"id": "exec42", "question": "Compare Redis and Memcached",
+                "answer": "Redis was recommended for its data structures.",
+                "completed_at": "2026-10-30T10:00:00Z"},
+      "followup_answer": "The one recommended earlier was Redis.",
+      "expect_source_prefix": "execution:",
+      "note": "A follow-up still answers from the recorded execution, not from memory."
+    },
+    {
+      "id": "E14",
+      "kind": "answer",
+      "question": "What licence is Redis distributed under?",
+      "passages": [
+        {"file_name": "cache_notes.pdf", "page_label": "3", "score": 0.86,
+         "text": "Redis is distributed under the BSD-3 licence."}
+      ],
+      "grounded_answer": "Redis is distributed under the BSD-3 licence (internal_legal_review.pdf, page 9).",
+      "memory_answer": "Redis is distributed under the BSD-3 licence.",
+      "expect": {"from": "model", "must_include": ["Answered from my own knowledge"],
+                 "must_include_sources": false, "flag": "licence",
+                 "must_not_include": ["internal_legal_review.pdf"]},
+      "note": "A fabricated citation must be dropped, and the reply must not present it as evidence."
+    },
+    {
+      "id": "E15",
+      "kind": "answer",
+      "question": "What licence is Redis distributed under?",
+      "passages": [
+        {"file_name": "cache_notes.pdf", "page_label": "3", "score": 0.86,
+         "text": "Redis is distributed under the BSD-3 licence."}
+      ],
+      "grounded_answer": "...",
+      "memory_answer": "",
+      "expect": {"from": "model", "must_include": ["could not produce an answer"],
+                 "must_include_sources": false, "flag": null},
+      "note": "Degenerate but non-empty model output must end in an honest reply, never a blank."
+    }
+  ]
+}

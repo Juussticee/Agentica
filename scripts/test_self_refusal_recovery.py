@@ -328,6 +328,49 @@ class TestCoverageGateUnit(RecoveryTestBase):
         self.assertFalse(_question_covered_by_evidence("", [node]))
         self.assertFalse(_question_covered_by_evidence(DELTA_QUESTION, []))
 
+    def test_question_structure_words_no_longer_block_eligibility(self):
+        # A6 GUI shape (2026-10-25): coverage was 0.45 solely because the
+        # evidence never echoes interrogatives/task verbs ("how", "what",
+        # summarize) — question-structure words are no longer counted.
+        node = _node(0.81, text=(
+            "For AI systems to be trustworthy, they often need to be "
+            "responsive to a multiplicity of criteria. Appendix D: "
+            "Attributes of the AI RMF. The Framework provides four "
+            "functions: GOVERN, MAP, MEASURE, and MANAGE, with "
+            "characteristics of trustworthy AI."))
+        question = ("Using this document, summarize how the framework "
+                    "connects its overall purpose, its core functions, and "
+                    "the characteristics of trustworthy AI.")
+        self.assertTrue(_question_covered_by_evidence(question, [node]))
+
+    def test_missing_detail_question_still_blocked_from_recovery(self):
+        # B1 GUI shape: the bee chunk is topically close but lacks
+        # "supers"/"inspecting"/"recommend" — eligibility must NOT be
+        # over-granted (the abstention stays correct).
+        node = _node(0.783, text=(
+            "Field Guide to Urban Beekeeping. A healthy hive in midsummer "
+            "can contain up to 60,000 worker bees, plus one queen. Honey "
+            "is harvested only when its moisture content drops below 18 "
+            "percent."))
+        question = ("What does the field guide recommend for inspecting a "
+                    "hive before adding honey supers?")
+        self.assertFalse(_question_covered_by_evidence(question, [node]))
+
+    def test_recovery_prompt_carries_the_partial_coverage_clause(self):
+        # 2026-10-25: the retry prompt lacked the main prompt's
+        # partial-coverage clause, so a weak model could only choose
+        # between full answer and NOT_FOUND (observed: A1/A4 retries
+        # re-refused). The clause must be present verbatim.
+        out, _ = self._run_agent(_FakeResponse(REFUSAL, [_node(0.78)]),
+                                 replies=[RECOVERED])
+        self.assertEqual(len(self.llm.prompts), 1)
+        prompt = self.llm.prompts[0]
+        self.assertIn("state ONLY the covered facts from the passages",
+                      prompt)
+        self.assertIn("do not claim the whole topic is absent", prompt)
+        # NOT_FOUND stays reserved for passages that support nothing.
+        self.assertIn(NOT_FOUND_PHRASE, prompt)
+
 
 class TestUnrelatedRoutesUnchanged(RecoveryTestBase):
     """Recovery is books-only: the deterministic ERP route must be exactly

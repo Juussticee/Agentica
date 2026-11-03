@@ -94,6 +94,69 @@ class TestASupportedParaphrase(GroundingTestBase):
         self.assertEqual(len(claims), 2, claims)
 
 
+class TestFRiskHarmParaphrase(GroundingTestBase):
+    """Approved 2026-10-24 RAG fix: the {risk, harm} paraphrase family.
+
+    Verified GUI failures (NIST AI-RMF corpus) refused a correct in-corpus
+    answer paraphrasing "possible AI harms" although the retrieved passages
+    say "risks" — the AI RMF's own synonym pair. The family admits that
+    supported relabel; its contract (relabel-only, one token at a time,
+    numbers exact, group can never invent support, gates run first) is
+    re-pinned here: unsupported and polarity-inverted "harm" claims still
+    refuse exactly as before.
+    """
+
+    RISK_EVIDENCE = (
+        "The MAP function identifies risks and provides methods to measure "
+        "and manage them. The relevant context is documented in which "
+        "possible risks may arise across the system lifecycle."
+    )
+    HARM_ANSWER = (
+        "The MAP function identifies possible harms and documents the "
+        "relevant context across the system lifecycle."
+    )
+
+    def _risk_node(self, score=0.78):
+        return _node(score, text=self.RISK_EVIDENCE,
+                     file_name="ai_framework.pdf", page="20")
+
+    def test_harm_over_risk_paraphrase_is_admitted(self):
+        out = self._run_agent(_FakeResponse(self.HARM_ANSWER,
+                                            [self._risk_node()]))
+        answer = out["answer"]
+        self.assertNotIn(NOT_FOUND_PHRASE, answer, answer)
+        self.assertIn("possible harms", answer)
+        self.assertIn("References: ai_framework.pdf, page 20", answer)
+
+    def test_group_never_invents_harm_support(self):
+        # The relabel needs a sibling member in the EVIDENCE: an unrelated
+        # corpus (delta-v orbital text, no risk/harm vocabulary) must still
+        # refuse a harm claim — the family cannot manufacture support.
+        mode, _, _ = _grounded_repair(self.HARM_ANSWER, [_delta_node()])
+        self.assertEqual(mode, "refusal", mode)
+
+    def test_polarity_gate_runs_before_the_family(self):
+        negated = ("This framework does not catalog individual harms of AI "
+                   "systems.")
+        affirmed = "This framework catalogs individual harms of AI systems."
+        mode, _, _ = _grounded_repair(
+            affirmed,
+            [_node(0.8, text=negated, file_name="ai_framework.pdf", page="3")])
+        self.assertEqual(mode, "refusal", mode)
+
+    def test_question_to_evidence_coverage_uses_the_family(self):
+        from app.agents.books_agent import _question_covered_by_evidence
+        question = ("If a team wants to identify and understand the context "
+                    "of possible AI harms before measuring them, which "
+                    "function is most relevant, and why?")
+        # Evidence says "risks" where the question says "harms": eligibility
+        # must hold via the family (this unblocked M5 on the verified run).
+        self.assertTrue(_question_covered_by_evidence(
+            question, [self._risk_node()]))
+        self.assertFalse(_question_covered_by_evidence(
+            question, [_delta_node()]))
+
+
 class TestBDirectlySupportedWording(GroundingTestBase):
     """B. Source-overlapping answers keep passing unchanged."""
 
